@@ -5,7 +5,8 @@ const headers = ref([])
 const rows = ref([])
 
 onMounted(async () => {
-  const res = await fetch('/data/etf_atr.csv')
+  const baseUrl = import.meta.env.VITE_BASE_URL || '/'
+  const res = await fetch(`${baseUrl}data/etf_atr.csv`)
   const text = await res.text()
   parseCSV(text)
 })
