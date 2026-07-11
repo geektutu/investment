@@ -1,0 +1,13 @@
+.vscode
+logs
+# python
+__pycache__/
+.cache/
+.pytest_cache/
+.venv/
+
+# nodejs
+npm-debug.log
+
+node_modules/
+dist/

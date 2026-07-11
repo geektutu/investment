@@ -1,0 +1,49 @@
+<script setup>
+import { ref, onMounted } from 'vue'
+
+const headers = ref([])
+const rows = ref([])
+
+onMounted(async () => {
+  const res = await fetch('/data/etf_atr.csv')
+  const text = await res.text()
+  parseCSV(text)
+})
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n')
+  headers.value = lines[0].split(',').map(h => h.trim())
+  rows.value = lines.slice(1).map(line => {
+    const cols = line.split(',')
+    return {
+      code: cols[0]?.trim(),
+      name: cols[1]?.trim(),
+      atr: cols[2]?.trim(),
+      maxDrawdown: cols[3]?.trim(),
+      currentDrawdown: cols[4]?.trim(),
+    }
+  })
+}
+</script>
+
+<template>
+  <div class="container">
+    <h1>ETF ATR 数据表</h1>
+    <table>
+      <thead>
+        <tr>
+          <th v-for="h in headers" :key="h">{{ h }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in rows" :key="row.code">
+          <td><code>{{ row.code }}</code></td>
+          <td>{{ row.name }}</td>
+          <td>{{ row.atr }}</td>
+          <td>{{ row.maxDrawdown }}</td>
+          <td>{{ row.currentDrawdown }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
