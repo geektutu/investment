@@ -49,9 +49,9 @@ class ETFATR(object):
 
 if __name__ == "__main__":
     config = Config()
-    os.makedirs(os.path.join(BASE_DIR, "dist"), exist_ok=True)
+    os.makedirs(os.path.join(BASE_DIR, "dist", "data"), exist_ok=True)
     result = open(
-        os.path.join(BASE_DIR, "dist", "etf_atr.csv"), "w", encoding="utf-8-sig"
+        os.path.join(BASE_DIR, "dist", "data", "etf_atr.csv"), "w", encoding="utf-8-sig"
     )
     print("代码,名称,ATR波动率,最大回撤,当前回撤", file=result)
     etf_list = []
