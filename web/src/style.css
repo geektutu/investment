@@ -392,6 +392,27 @@ th {
   white-space: nowrap;
 }
 
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+th.sortable:hover {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.sort-icon {
+  font-size: 12px;
+  opacity: 0.4;
+  margin-left: 2px;
+}
+
+th.sortible:hover .sort-icon,
+th.sortable:active .sort-icon {
+  opacity: 1;
+}
+
 td {
   padding: 10px 16px;
   border-top: 1px solid var(--border);

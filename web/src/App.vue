@@ -1,9 +1,14 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 
 const headers = ref([])
 const rows = ref([])
 const buildTime = ref(new Date(__BUILD_TIME__).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }))
+const sortKey = ref('')
+const sortAsc = ref(true)
+
+// 可排序的列索引（代码和名称除外）
+const sortableIndexes = [2, 3, 4]
 
 onMounted(async () => {
   const baseUrl = import.meta.env.VITE_BASE_URL || '/'
@@ -26,6 +31,35 @@ function parseCSV(text) {
     }
   })
 }
+
+function parsePercent(val) {
+  return parseFloat(val?.replace('%', '')) || 0
+}
+
+const sortedRows = computed(() => {
+  if (!sortKey.value) return rows.value
+  const idx = parseInt(sortKey.value)
+  const sorted = [...rows.value].sort((a, b) => {
+    const keyMap = { 2: 'atr', 3: 'maxDrawdown', 4: 'currentDrawdown' }
+    const field = keyMap[idx]
+    return parsePercent(a[field]) - parsePercent(b[field])
+  })
+  return sortAsc.value ? sorted : sorted.reverse()
+})
+
+function toggleSort(idx) {
+  if (sortKey.value === idx.toString()) {
+    sortAsc.value = !sortAsc.value
+  } else {
+    sortKey.value = idx.toString()
+    sortAsc.value = true
+  }
+}
+
+function sortIcon(idx) {
+  if (sortKey.value !== idx.toString()) return ' ↕'
+  return sortAsc.value ? ' ↑' : ' ↓'
+}
 </script>
 
 <template>
@@ -41,11 +75,13 @@ function parseCSV(text) {
     <table>
       <thead>
         <tr>
-          <th v-for="h in headers" :key="h">{{ h }}</th>
+          <th v-for="(h, idx) in headers" :key="h" :class="{ sortable: sortableIndexes.includes(idx) }" @click="sortableIndexes.includes(idx) && toggleSort(idx)">
+            {{ h }}<span class="sort-icon">{{ sortableIndexes.includes(idx) ? sortIcon(idx) : '' }}</span>
+          </th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="row in rows" :key="row.code">
+        <tr v-for="row in sortedRows" :key="row.code">
           <td><code>{{ row.code }}</code></td>
           <td>{{ row.name }}</td>
           <td>{{ row.atr }}</td>
