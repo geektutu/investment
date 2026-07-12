@@ -30,7 +30,7 @@ jobs:
 
       - name: Run ETF ATR script
         working-directory: data
-        run: python etf_atr.py
+        run: python main.py
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

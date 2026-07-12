@@ -26,6 +26,7 @@ def get_kline_data_of(code: str, count: int = 100) -> Optional[pd.DataFrame]:
                 adjust="forward_additive",
                 as_dataframe=True,
             )
+            time.sleep(1)
             break
         except RateLimitError as e:
             print(f"限流: {e}，等待 60s 后重试...")
