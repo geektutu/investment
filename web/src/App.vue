@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 
 const headers = ref([])
 const rows = ref([])
+const buildTime = ref(new Date(__BUILD_TIME__).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }))
 
 onMounted(async () => {
   const baseUrl = import.meta.env.VITE_BASE_URL || '/'
@@ -28,6 +29,13 @@ function parseCSV(text) {
 </script>
 
 <template>
+  <header class="header">
+    <div class="site-brand">
+      <img src="/rabbit.png" alt="logo" class="logo" />
+      <span class="site-name">投资小兔兔</span>
+    </div>
+    <a href="https://github.com/geektutu/investment" target="_blank" class="github-link">GitHub</a>
+  </header>
   <div class="container">
     <h1>ETF ATR 数据表</h1>
     <table>
@@ -47,4 +55,7 @@ function parseCSV(text) {
       </tbody>
     </table>
   </div>
+  <footer class="footer">
+    构建时间：{{ buildTime }}
+  </footer>
 </template>
