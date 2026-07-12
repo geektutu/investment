@@ -468,7 +468,104 @@ code {
 }
 
 .content {
+  width: 700px;
+  flex-shrink: 0;
+}
+
+.calculator {
+  padding: 24px 0;
+}
+
+.form-group {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+  margin-bottom: 6px;
+}
+
+.form-group input {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 15px;
+  color: var(--text-h);
+  background: var(--bg);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  border-color: var(--accent);
+}
+
+.form-group .hint {
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-row .form-group {
   flex: 1;
+}
+
+.result {
+  margin-top: 28px;
+  padding: 20px;
+  border-radius: 8px;
+  background: var(--accent-bg);
+  border: 1px solid var(--border);
+}
+
+.result h3 {
+  font-size: 16px;
+  color: var(--text-h);
+  margin-bottom: 14px;
+}
+
+.result-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.price-tag {
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.result-info {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0.8;
+}
+
+.placeholder {
+  margin-top: 40px;
+  padding: 40px;
+  text-align: center;
+  color: var(--text);
+  opacity: 0.5;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
 }
 
 .footer {
