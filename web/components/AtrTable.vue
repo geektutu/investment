@@ -17,8 +17,10 @@ const showSourceFilter = ref(false)
 
 const sortableIndexes = [2, 3, 4]
 
+const config = useRuntimeConfig()
+const baseUrl = config.app.baseURL || '/'
+
 onMounted(async () => {
-  const baseUrl = import.meta.env.VITE_BASE_URL || '/'
   const res = await fetch(`${baseUrl}data/${props.csvPath}`)
   const text = await res.text()
   parseCSV(text)
@@ -114,7 +116,7 @@ function closePanel() {
     <table>
       <thead>
         <tr>
-          <th v-for="(h, idx) in headers" :key="h" :class="{ sortable: sortableIndexes.includes(idx) }" @click="sortableIndexes.includes(idx) && toggleSort(idx)">
+          <th v-for="(h, idx) in headers" :key="h" :class="{ 'atr-sortable': sortableIndexes.includes(idx) }" @click="sortableIndexes.includes(idx) && toggleSort(idx)">
             <template v-if="h === '来源'">
               <div class="source-filter-wrapper">
                 <span class="source-header" @click.stop="toggleFilterPanel">
@@ -145,7 +147,7 @@ function closePanel() {
               </div>
             </template>
             <template v-else>
-              {{ h }}<span class="sort-icon">{{ sortableIndexes.includes(idx) ? sortIcon(idx) : '' }}</span>
+              {{ h }}<span class="atr-sort-icon">{{ sortableIndexes.includes(idx) ? sortIcon(idx) : '' }}</span>
             </template>
           </th>
         </tr>
@@ -165,13 +167,35 @@ function closePanel() {
 </template>
 
 <style scoped>
+.atr-table-wrapper {
+  overflow: visible;
+  position: relative;
+  z-index: 1;
+}
+
 .atr-table-wrapper table {
   overflow: visible;
 }
 
-.atr-table-wrapper thead {
-  position: relative;
-  z-index: 10;
+.atr-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.atr-sortable:hover {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.atr-sort-icon {
+  font-size: 12px;
+  opacity: 0.4;
+  margin-left: 2px;
+}
+
+.atr-sortable:hover .atr-sort-icon,
+.atr-sortable:active .atr-sort-icon {
+  opacity: 1;
 }
 
 .source-filter-wrapper {

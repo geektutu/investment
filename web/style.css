@@ -468,8 +468,8 @@ code {
 }
 
 .content {
-  width: 700px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .calculator {
@@ -578,10 +578,9 @@ code {
 }
 
 .container {
-  max-width: 900px;
-  margin: 40px auto;
-  padding: 0 20px;
-  padding-top: 80px;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 80px 24px 40px;
 }
 
 .container h1 {
@@ -611,24 +610,24 @@ th {
   white-space: nowrap;
 }
 
-th.sortable {
+th.atr-sortable {
   cursor: pointer;
   user-select: none;
 }
 
-th.sortable:hover {
+th.atr-sortable:hover {
   background: var(--accent-bg);
   color: var(--accent);
 }
 
-.sort-icon {
+.atr-sort-icon {
   font-size: 12px;
   opacity: 0.4;
   margin-left: 2px;
 }
 
-th.sortable:hover .sort-icon,
-th.sortable:active .sort-icon {
+th.atr-sortable:hover .atr-sort-icon,
+th.atr-sortable:active .atr-sort-icon {
   opacity: 1;
 }
 
@@ -647,4 +646,3 @@ tbody tr:hover {
     background: rgba(192, 132, 252, 0.06);
   }
 }
-

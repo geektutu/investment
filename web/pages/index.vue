@@ -1,12 +1,23 @@
 <script setup>
-import { useRoute } from 'vue-router'
-
+const router = useRouter()
 const route = useRoute()
 
 const menuItems = [
   { path: '/atr', name: 'ETF ATR' },
   { path: '/stock-atr', name: '个股 ATR' },
 ]
+
+// 处理 GitHub Pages 404 重定向
+const redirectPath = localStorage.getItem('redirectPath')
+if (redirectPath) {
+  localStorage.removeItem('redirectPath')
+  router.replace(redirectPath)
+}
+
+// 默认跳转到 /atr
+if (route.path === '/') {
+  router.replace('/atr')
+}
 </script>
 
 <template>
@@ -16,14 +27,14 @@ const menuItems = [
       <aside class="sidebar">
         <ul class="menu">
           <li v-for="item in menuItems" :key="item.path">
-            <router-link :to="item.path" :class="{ active: route.path === item.path }">
+            <NuxtLink :to="item.path" :class="{ active: $route.path === item.path }">
               {{ item.name }}
-            </router-link>
+            </NuxtLink>
           </li>
         </ul>
       </aside>
       <main class="content">
-        <router-view></router-view>
+        <NuxtPage />
       </main>
     </div>
   </div>

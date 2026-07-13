@@ -1,5 +1,5 @@
 <script setup>
-import AtrTable from '../../components/AtrTable.vue'
+import AtrTable from '~/components/AtrTable.vue'
 </script>
 
 <template>
