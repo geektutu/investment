@@ -1,0 +1,1 @@
+import{c as e,g as n,o as t}from"./BeohCX_f.js";const l={__name:"404",setup(a){const o=n().app.baseURL||"/";return localStorage.setItem("redirectPath",window.location.pathname+window.location.search+window.location.hash),window.location.href=o,(i,r)=>(t(),e("p",null,"Redirecting..."))}};export{l as default};

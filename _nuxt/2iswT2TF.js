@@ -1,0 +1,1 @@
+import{_ as o,c as t,a as s,o as c}from"./BeohCX_f.js";const n={},a={class:"home-content"};function r(_,e){return c(),t("div",a,[...e[0]||(e[0]=[s("p",null,"请选择左侧功能查看数据",-1)])])}const l=o(n,[["render",r],["__scopeId","data-v-d796bc10"]]);export{l as default};
