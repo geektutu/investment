@@ -13,6 +13,10 @@ CACHE = Cache(os.path.join(BASE_DIR, ".cache"))
 TF = TickFlow.free()
 
 
+def suffix_of(code: str) -> str:
+    return ".SH" if (code.startswith("5") or code.startswith("6")) else ".SZ"
+
+
 @CACHE.memoize(expire=3600 * 12)
 def get_kline_data_of(code: str, count: int = 100) -> Optional[pd.DataFrame]:
     print(f"获取 {code} 的历史数据...")
@@ -20,7 +24,7 @@ def get_kline_data_of(code: str, count: int = 100) -> Optional[pd.DataFrame]:
     while True:
         try:
             df = TF.klines.get(
-                (code + (".SH" if code.startswith("5") else ".SZ")),
+                (code + suffix_of(code)),
                 period="1d",
                 count=count,
                 adjust="forward_additive",

@@ -19,7 +19,7 @@ class Config(object):
                 self.__etf_categories[str(code)] = key
 
     def etf(self):
-        return list(self.__etfs.keys())
+        return list[str](self.__etfs.keys())
 
     def etf_category_of(self, code: str):
         return self.__etf_categories.get(code, "")
@@ -27,21 +27,26 @@ class Config(object):
     def etf_name_of(self, code):
         return self.__etfs.get(code, "")
 
+    def etf_stock_analysis(self):
+        return self.config.get("成分股分析", {}).items()
+
 
 class ETFATR(object):
     def __init__(
         self,
-        config: Config,
         code: int,
+        name: str,
         atr_ratio: float,
         max_drawdown: float,
         current_drawdown: float,
+        source: str,
     ) -> None:
-        self.config = config
         self.code = code
+        self.name = name
         self.atr_ratio = atr_ratio
         self.max_drawdown = max_drawdown
         self.current_drawdown = current_drawdown
+        self.source = source
 
     def __str__(self):
-        return f"{self.code},{self.config.etf_name_of(self.code)},{self.atr_ratio:.2%},{self.max_drawdown:.1%},{self.current_drawdown:.1%}"
+        return f"{self.code},{self.name},{self.atr_ratio:.2%},{self.max_drawdown:.1%},{self.current_drawdown:.1%},{self.source}"
