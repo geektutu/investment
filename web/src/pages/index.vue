@@ -5,6 +5,7 @@ const route = useRoute()
 
 const menuItems = [
   { path: '/atr', name: 'ETF ATR' },
+  { path: '/stock-atr', name: '个股 ATR' },
 ]
 </script>
 
