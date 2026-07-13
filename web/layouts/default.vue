@@ -1,12 +1,14 @@
 <script setup>
 const route = useRoute()
+const baseURL = useRuntimeConfig().app.baseURL
+const { buildTime } = useAppConfig()
 </script>
 
 <template>
   <div>
     <header class="header">
       <div class="site-brand">
-        <img src="/rabbit.png" alt="logo" class="logo" />
+        <img :src="`${baseURL}rabbit.png`" alt="logo" class="logo" />
         <span class="site-name">投资小兔兔</span>
       </div>
       <nav class="tabs">
@@ -17,7 +19,7 @@ const route = useRoute()
     </header>
     <slot />
     <footer class="footer">
-      构建时间：{{ new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) }}
+      构建时间：{{ buildTime }}
     </footer>
   </div>
 </template>

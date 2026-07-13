@@ -10,7 +10,7 @@ __pycache__/
 npm-debug.log
 
 node_modules/
-dist/
+dist
 
 # nuxt
 .nuxt/
