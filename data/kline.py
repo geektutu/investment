@@ -30,11 +30,11 @@ def get_kline_data_of(code: str, count: int = 100) -> Optional[pd.DataFrame]:
                 adjust="forward_additive",
                 as_dataframe=True,
             )
-            time.sleep(1)
+            time.sleep(1.2)
             break
         except RateLimitError as e:
-            print(f"限流: {e}，等待 60s 后重试...")
-            time.sleep(60)
+            print(f"限流: {e}，等待 10s 后重试...")
+            time.sleep(10)
     df.to_csv(
         os.path.join(BASE_DIR, ".cache", f"{code}_close.csv"),
         index=False,

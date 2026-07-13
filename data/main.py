@@ -43,13 +43,7 @@ def run_stock_atr():
     for etf, source in config.etf_stock_analysis():
         em_etf = EmETF(etf)
         stocks = em_etf.fetch_stocks()
-        target_list.update(
-            [
-                (code, name, source)
-                for code, name, _ in stocks[:20]
-                if "银行" not in name
-            ]
-        )
+        target_list.update([(code, name, source) for code, name, _ in stocks[:20]])
 
     calc_atr_of("stock_atr.csv", list(target_list))
 

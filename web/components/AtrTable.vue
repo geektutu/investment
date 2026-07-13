@@ -153,7 +153,7 @@ function closePanel() {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="row in sortedRows" :key="row.code">
+        <tr v-for="row in sortedRows" :key="row.code + row.source">
           <td><code>{{ row.code }}</code></td>
           <td>{{ row.name }}</td>
           <td>{{ row.atr }}</td>
