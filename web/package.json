@@ -7,7 +7,7 @@
     "dev": "nuxt dev",
     "build": "nuxt build",
     "generate": "nuxt generate && cp -r ../data/dist/* .output/public/",
-    "preview": "cd .output/public && rm -rf investment && ln -s . investment && cd ../.. && nuxt preview"
+    "preview": "trap 'rm -f .output/public/investment' EXIT; cd .output/public && rm -rf investment && ln -s . investment && cd ../.. && nuxt preview"
   },
   "dependencies": {
     "nuxt": "^4.4.8",

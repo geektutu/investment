@@ -34,7 +34,7 @@ const result = computed(() => {
 })
 
 function formatPrice(val) {
-  return val.toFixed(2)
+  return val.toFixed(3)
 }
 </script>
 

@@ -7,13 +7,6 @@ const menuItems = [
   { path: '/stock-atr', name: '个股 ATR' },
 ]
 
-// 处理 GitHub Pages 404 重定向
-const redirectPath = localStorage.getItem('redirectPath')
-if (redirectPath) {
-  localStorage.removeItem('redirectPath')
-  router.replace(redirectPath)
-}
-
 // 默认跳转到 /atr
 if (route.path === '/') {
   router.replace('/atr')
