@@ -11,14 +11,23 @@ def calc_atr_of(result_file: str, target_list: list[tuple[str, str]]):
     result = open(
         os.path.join(BASE_DIR, "dist", "data", result_file), "w", encoding="utf-8-sig"
     )
-    print("代码,名称,ATR波动率,最大回撤,当前回撤,来源", file=result)
+    print("代码,名称,ATR(14),ATR(60),最大回撤,当前回撤,来源", file=result)
     etf_list = []
     for code, name, source in target_list:
         kline = KLine(code)
         _, atr_ratio = kline.atr_ratio()
+        _, atr_ratio2 = kline.atr_ratio(window=60)
         _, max_drawdown, current_drawdown = kline.drawdown(window=100)
         etf_list.append(
-            ETFATR(code, name, atr_ratio, max_drawdown, current_drawdown, source)
+            ETFATR(
+                code,
+                name,
+                atr_ratio,
+                atr_ratio2,
+                max_drawdown,
+                current_drawdown,
+                source,
+            )
         )
 
     etf_list.sort(key=lambda x: x.atr_ratio, reverse=True)

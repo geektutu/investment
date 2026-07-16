@@ -15,7 +15,7 @@ const sortAsc = ref(true)
 const selectedSources = ref([])
 const showSourceFilter = ref(false)
 
-const sortableIndexes = [2, 3, 4]
+const sortableIndexes = [2, 3, 4, 5]
 
 const config = useRuntimeConfig()
 const baseUrl = config.app.baseURL || '/'
@@ -34,10 +34,11 @@ function parseCSV(text) {
     return {
       code: cols[0]?.trim(),
       name: cols[1]?.trim(),
-      atr: cols[2]?.trim(),
-      maxDrawdown: cols[3]?.trim(),
-      currentDrawdown: cols[4]?.trim(),
-      source: cols[5]?.trim(),
+      atr14: cols[2]?.trim(),
+      atr60: cols[3]?.trim(),
+      maxDrawdown: cols[4]?.trim(),
+      currentDrawdown: cols[5]?.trim(),
+      source: cols[6]?.trim(),
     }
   })
 }
@@ -64,7 +65,7 @@ const sortedRows = computed(() => {
   if (!sortKey.value) return data
   const idx = parseInt(sortKey.value)
   const sorted = [...data].sort((a, b) => {
-    const keyMap = { 2: 'atr', 3: 'maxDrawdown', 4: 'currentDrawdown' }
+    const keyMap = { 2: 'atr14', 3: 'atr60', 4: 'maxDrawdown', 5: 'currentDrawdown' }
     const field = keyMap[idx]
     return parsePercent(a[field]) - parsePercent(b[field])
   })
@@ -156,7 +157,8 @@ function closePanel() {
         <tr v-for="row in sortedRows" :key="row.code + row.source">
           <td><code>{{ row.code }}</code></td>
           <td>{{ row.name }}</td>
-          <td>{{ row.atr }}</td>
+          <td>{{ row.atr14 }}</td>
+          <td>{{ row.atr60 }}</td>
           <td>{{ row.maxDrawdown }}</td>
           <td>{{ row.currentDrawdown }}</td>
           <td>{{ row.source }}</td>

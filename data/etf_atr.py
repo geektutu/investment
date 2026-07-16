@@ -37,6 +37,7 @@ class ETFATR(object):
         code: int,
         name: str,
         atr_ratio: float,
+        atr_ratio2: float,
         max_drawdown: float,
         current_drawdown: float,
         source: str,
@@ -44,9 +45,10 @@ class ETFATR(object):
         self.code = code
         self.name = name
         self.atr_ratio = atr_ratio
+        self.atr_ratio2 = atr_ratio2
         self.max_drawdown = max_drawdown
         self.current_drawdown = current_drawdown
         self.source = source
 
     def __str__(self):
-        return f"{self.code},{self.name},{self.atr_ratio:.2%},{self.max_drawdown:.1%},{self.current_drawdown:.1%},{self.source}"
+        return f"{self.code},{self.name},{self.atr_ratio:.2%},{self.atr_ratio2:.2%},{self.max_drawdown:.1%},{self.current_drawdown:.1%},{self.source}"

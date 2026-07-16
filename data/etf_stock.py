@@ -3,9 +3,6 @@ import requests
 from urllib.parse import urlencode
 from diskcache import Cache
 
-from etf_atr import Config, ETFATR
-from kline import KLine
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CACHE = Cache(os.path.join(BASE_DIR, ".cache"))
 
