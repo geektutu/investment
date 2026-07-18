@@ -177,8 +177,15 @@ function closePanel() {
   z-index: 1;
 }
 
+/* 防止名称和来源列换行 */
+.atr-table-wrapper tbody td:nth-child(2),
+.atr-table-wrapper tbody td:nth-child(8) {
+  white-space: nowrap;
+}
+
 .atr-table-wrapper table {
   overflow: visible;
+  font-size: 13px;
 }
 
 .atr-sortable {
