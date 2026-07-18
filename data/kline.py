@@ -90,6 +90,18 @@ class KLine(object):
         current_drawdown = df["回撤"].iloc[-1]
         return df, max_drawdown, current_drawdown
 
+    def bias(self, window: int = 50) -> float:
+        """
+        计算乖离率 BIAS = (Close - MA) / MA * 100%
+        返回最后一天的 BIAS 值
+        """
+        df = get_kline_data_of(self.code, self.count)
+        if df.empty or len(df) < window:
+            return 0.0
+        df["MA"] = df["close"].rolling(window=window).mean()
+        df["BIAS"] = (df["close"] - df["MA"]) / df["MA"] * 100
+        return df["BIAS"].iloc[-1]
+
     def __pct_change(self, window: int = 20) -> pd.DataFrame:
         """
         计算涨跌幅

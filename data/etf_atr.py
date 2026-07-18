@@ -41,6 +41,7 @@ class ETFATR(object):
         max_drawdown: float,
         current_drawdown: float,
         source: str,
+        bias_ratio: float = 0.0,
     ) -> None:
         self.code = code
         self.name = name
@@ -49,6 +50,7 @@ class ETFATR(object):
         self.max_drawdown = max_drawdown
         self.current_drawdown = current_drawdown
         self.source = source
+        self.bias_ratio = bias_ratio
 
     def __str__(self):
-        return f"{self.code},{self.name},{self.atr_ratio:.2%},{self.atr_ratio2:.2%},{self.max_drawdown:.1%},{self.current_drawdown:.1%},{self.source}"
+        return f"{self.code},{self.name},{self.atr_ratio:.2%},{self.atr_ratio2:.2%},{self.bias_ratio:.2f}%,{self.max_drawdown:.1%},{self.current_drawdown:.1%},{self.source}"
