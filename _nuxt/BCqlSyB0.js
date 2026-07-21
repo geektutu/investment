@@ -1,1 +1,0 @@
-import{j as o,a as t,b as s,o as n}from"./BcKoz_Dx.js";const c={},a={class:"home-content"};function r(d,e){return n(),t("div",a,[...e[0]||(e[0]=[s("p",null,"请选择左侧功能查看数据",-1)])])}const l=o(c,[["render",r],["__scopeId","data-v-d796bc10"]]);export{l as default};
