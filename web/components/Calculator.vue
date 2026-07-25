@@ -105,12 +105,16 @@ function formatPercent(val) {
         </div>
         <div class="result-metrics">
           <div class="metric-item">
-            <span class="metric-label">网格比例</span>
-            <span class="metric-value">{{ formatPercent(gridRatio) }}</span>
-          </div>
-          <div class="metric-item">
             <span class="metric-label">支撑涨幅</span>
             <span class="metric-value">{{ formatPercent(supportIncrease) }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">目标价格</span>
+            <span class="metric-value">{{ formatPrice(targetPrice) }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">网格比例</span>
+            <span class="metric-value">{{ formatPercent(gridRatio) }}</span>
           </div>
           <div class="metric-item">
             <span class="metric-label">每笔金额</span>
@@ -119,10 +123,6 @@ function formatPercent(val) {
           <div class="metric-item">
             <span class="metric-label">1%风险</span>
             <span class="metric-value">{{ Math.round(riskOnePercent) }}</span>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">目标价格</span>
-            <span class="metric-value">{{ formatPrice(targetPrice) }}</span>
           </div>
         </div>
       </div>
