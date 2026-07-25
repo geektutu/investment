@@ -14,6 +14,7 @@ const { buildTime } = useAppConfig()
       <nav class="tabs">
   <NuxtLink to="/atr" :class="{ active: route.path.startsWith('/atr') || route.path.startsWith('/stock-atr') || route.path === '/' }">表格</NuxtLink>
   <NuxtLink to="/grid" :class="{ active: route.path.startsWith('/grid') }">网格</NuxtLink>
+  <NuxtLink to="/tools/todo" :class="{ active: route.path.startsWith('/tools') }">工具</NuxtLink>
 </nav>
       <a href="https://github.com/geektutu/investment" target="_blank" class="github-link">GitHub</a>
     </header>
