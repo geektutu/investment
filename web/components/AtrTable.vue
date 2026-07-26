@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import KlineChart from './KlineChart.vue'
 
 const props = defineProps({
   csvPath: {
@@ -19,6 +20,11 @@ const sortableIndexes = [2, 3, 4, 5, 6]
 
 const config = useRuntimeConfig()
 const baseUrl = config.app.baseURL || '/'
+
+// K线图相关
+const showKline = ref(false)
+const selectedCode = ref('')
+const selectedName = ref('')
 
 onMounted(async () => {
   const res = await fetch(`${baseUrl}data/${props.csvPath}`)
@@ -111,6 +117,18 @@ function toggleFilterPanel() {
 function closePanel() {
   showSourceFilter.value = false
 }
+
+function openKline(code, name) {
+  selectedCode.value = code
+  selectedName.value = name
+  showKline.value = true
+}
+
+function closeKline() {
+  showKline.value = false
+  selectedCode.value = ''
+  selectedName.value = ''
+}
 </script>
 
 <template>
@@ -155,7 +173,12 @@ function closePanel() {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="row in sortedRows" :key="row.code + row.source">
+        <tr
+          v-for="row in sortedRows"
+          :key="row.code + row.source"
+          class="atr-row"
+          @click="openKline(row.code, row.name)"
+        >
           <td><code>{{ row.code }}</code></td>
           <td>{{ row.name }}</td>
           <td>{{ row.atr14 }}</td>
@@ -168,6 +191,13 @@ function closePanel() {
       </tbody>
     </table>
   </div>
+
+  <KlineChart
+    v-if="showKline"
+    :code="selectedCode"
+    :name="selectedName"
+    @close="closeKline"
+  />
 </template>
 
 <style scoped>
@@ -186,6 +216,15 @@ function closePanel() {
 .atr-table-wrapper table {
   overflow: visible;
   font-size: 13px;
+}
+
+.atr-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.atr-row:hover {
+  background: rgba(170, 59, 255, 0.06);
 }
 
 .atr-sortable {

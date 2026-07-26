@@ -2,6 +2,7 @@ from etf_atr import Config, ETFATR
 from etf_stock import EmETF
 from kline import KLine
 import os
+import shutil
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -59,6 +60,24 @@ def run_stock_atr():
     calc_atr_of("stock_atr.csv", list(target_list))
 
 
+def copy_close_csv():
+    """将 .cache 下的 {code}_close.csv 拷贝到 data/dist/data 下"""
+    cache_dir = os.path.join(BASE_DIR, ".cache")
+    dist_data_dir = os.path.join(BASE_DIR, "dist", "data")
+    os.makedirs(dist_data_dir, exist_ok=True)
+
+    if not os.path.exists(cache_dir):
+        return
+
+    for filename in os.listdir(cache_dir):
+        if filename.endswith("_close.csv"):
+            src = os.path.join(cache_dir, filename)
+            dst = os.path.join(dist_data_dir, filename)
+            shutil.copy2(src, dst)
+            print(f"已拷贝 {filename}")
+
+
 if __name__ == "__main__":
     run_etf_atr()
     run_stock_atr()
+    copy_close_csv()
