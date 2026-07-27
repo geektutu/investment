@@ -3,6 +3,7 @@ from etf_stock import EmETF
 from kline import KLine
 import os
 import shutil
+import pandas as pd
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -60,6 +61,52 @@ def run_stock_atr():
     calc_atr_of("stock_atr.csv", list(target_list))
 
 
+def run_correlation():
+    """计算 ETF 之间的相关性矩阵并输出 CSV"""
+    config = Config()
+    etf_codes = config.etf()
+    etf_names = {code: config.etf_name_of(code) for code in etf_codes}
+
+    # 获取所有 ETF 的涨跌幅数据
+    klines = {}
+    for code in etf_codes:
+        kline = KLine(code)
+        df = kline._KLine__pct_change(20)
+        if not df.empty:
+            klines[code] = df[["trade_date", "涨幅"]].rename(columns={"涨幅": code})
+
+    # 计算相关性矩阵
+    codes = sorted(klines.keys())
+    n = len(codes)
+    corr_matrix = [[0.0] * n for _ in range(n)]
+
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                corr_matrix[i][j] = 1.0
+            elif i < j:
+                df1 = klines[codes[i]]
+                df2 = klines[codes[j]]
+                merged = pd.merge(df1, df2, on="trade_date", how="inner")
+                if not merged.empty:
+                    corr = merged[codes[i]].corr(merged[codes[j]])
+                    corr_matrix[i][j] = corr
+                    corr_matrix[j][i] = corr
+
+    # 输出 CSV
+    os.makedirs(os.path.join(BASE_DIR, "dist", "data"), exist_ok=True)
+    output = os.path.join(BASE_DIR, "dist", "data", "correlation.csv")
+    with open(output, "w", encoding="utf-8-sig") as f:
+        # 表头
+        f.write("代码,名称," + ",".join(codes) + "\n")
+        # 每行数据
+        for i, code in enumerate(codes):
+            name = etf_names.get(code, code)
+            row = [code, name] + [f"{corr_matrix[i][j]:.4f}" for j in range(n)]
+            f.write(",".join(row) + "\n")
+    print(f"相关性矩阵已生成，共 {n} 个 ETF")
+
+
 def copy_close_csv():
     """将 .cache 下的 {code}_close.csv 拷贝到 data/dist/data 下"""
     cache_dir = os.path.join(BASE_DIR, ".cache")
@@ -80,4 +127,5 @@ def copy_close_csv():
 if __name__ == "__main__":
     run_etf_atr()
     run_stock_atr()
+    run_correlation()
     copy_close_csv()
