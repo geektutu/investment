@@ -218,6 +218,25 @@ function closeKline() {
   font-size: 13px;
 }
 
+.atr-table-wrapper thead th {
+  position: sticky;
+  top: 72px;
+  z-index: 10;
+  background: var(--bg);
+  box-shadow: inset 0 -1px 0 var(--border), inset 0 1px 0 var(--border);
+}
+
+.atr-table-wrapper thead th::before {
+  content: '';
+  position: absolute;
+  top: -16px;
+  left: -4px;
+  right: -4px;
+  height: 16px;
+  background: var(--bg);
+  z-index: -1;
+}
+
 .atr-row {
   cursor: pointer;
   transition: background 0.15s;
