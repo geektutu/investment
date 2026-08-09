@@ -3,6 +3,7 @@ from etf_stock import EmETF
 from kline import KLine
 import os
 import shutil
+import sys
 import pandas as pd
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -51,12 +52,13 @@ def run_etf_atr():
 
 def run_stock_atr():
     config = Config()
-    print(config.etf_stock_analysis())
+    etf_stock_list = list(config.etf_stock_analysis())
+    print(etf_stock_list)
     target_list = set()
-    for etf, source in config.etf_stock_analysis():
+    for etf, source in etf_stock_list:
         em_etf = EmETF(etf)
-        stocks = em_etf.fetch_stocks()
-        target_list.update([(code, name, source) for code, name, _ in stocks[:20]])
+        stocks = em_etf.fetch_stocks(top=30)
+        target_list.update([(code, name, source) for code, name, _ in stocks])
 
     calc_atr_of("stock_atr.csv", list(target_list))
 
@@ -125,6 +127,8 @@ def copy_close_csv():
 
 
 if __name__ == "__main__":
+    if "--debug" in sys.argv:
+        os.environ["DEBUG"] = "1"
     run_etf_atr()
     run_stock_atr()
     run_correlation()

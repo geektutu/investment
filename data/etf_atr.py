@@ -19,7 +19,12 @@ class Config(object):
                 self.__etf_categories[str(code)] = key
 
     def etf(self):
-        return list[str](self.__etfs.keys())
+        etf_codes = list[str](self.__etfs.keys())
+        if os.environ.get("DEBUG"):
+            total = len(etf_codes)
+            etf_codes = etf_codes[::10]
+            print(f"[debug] ETF: {len(etf_codes)}/{total}")
+        return etf_codes
 
     def etf_category_of(self, code: str):
         return self.__etf_categories.get(code, "")

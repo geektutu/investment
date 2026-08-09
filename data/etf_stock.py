@@ -31,7 +31,7 @@ class EmETF(object):
 
         return None
 
-    def fetch_stocks(self):
+    def fetch_stocks(self, top=-1):
         stocks = []
         obj = self.__fetch(self.etf_code)
         if not obj:
@@ -49,5 +49,10 @@ class EmETF(object):
             stocks.append((code, name, weight))
 
         stocks.sort(key=lambda x: x[2], reverse=True)
+
+        if top > 0:
+            stocks = stocks[:top]
+        if os.environ.get("DEBUG"):
+            stocks = stocks[::10]
 
         return stocks
