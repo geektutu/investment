@@ -323,7 +323,7 @@ def section_name(big, cat):
     return f"{cat}ETF" if big == "风格" else f"{big}ETF"
 
 
-# python3 etf_growth.py
+# python3 etf_config.py
 if __name__ == "__main__":
     etfs = fetch_etfs()
 
