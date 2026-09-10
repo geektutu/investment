@@ -46,7 +46,7 @@ def get_kline_data_of(code: str, count: int = 100) -> Optional[pd.DataFrame]:
 
 
 class KLine(object):
-    def __init__(self, code: str, count=100) -> None:
+    def __init__(self, code: str, count=200) -> None:
         self.code = code
         self.count = count
 
