@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import KlineChart from './KlineChart.vue'
+import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
 import { loadFundamentals } from '~/utils/fundamentals'
+
+const KlineChart = defineAsyncComponent(() => import('./KlineChart.vue'))
 
 const props = defineProps({
   csvPath: {

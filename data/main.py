@@ -103,8 +103,11 @@ def run_correlation():
     print(f"相关性矩阵已生成，共 {n} 个 ETF")
 
 
+CLOSE_CSV_COLUMNS = ["trade_date", "open", "high", "low", "close", "volume"]
+
+
 def copy_close_csv():
-    """将 .cache 下的 {code}_close.csv 拷贝到 data/dist/data 下"""
+    """将 .cache 下的 {code}_close.csv 精简列、去除浮点噪声后写入 data/dist/data"""
     cache_dir = os.path.join(BASE_DIR, ".cache")
     dist_data_dir = os.path.join(BASE_DIR, "dist", "data")
     os.makedirs(dist_data_dir, exist_ok=True)
@@ -113,11 +116,17 @@ def copy_close_csv():
         return
 
     for filename in os.listdir(cache_dir):
-        if filename.endswith("_close.csv"):
-            src = os.path.join(cache_dir, filename)
-            dst = os.path.join(dist_data_dir, filename)
-            shutil.copy2(src, dst)
-            print(f"已拷贝 {filename}")
+        if not filename.endswith("_close.csv"):
+            continue
+        src = os.path.join(cache_dir, filename)
+        dst = os.path.join(dist_data_dir, filename)
+        df = pd.read_csv(src, encoding="utf-8-sig")
+        df = df[[c for c in CLOSE_CSV_COLUMNS if c in df.columns]]
+        for col in ("open", "high", "low", "close"):
+            if col in df.columns:
+                df[col] = df[col].astype(float).round(3)
+        df.to_csv(dst, index=False, encoding="utf-8-sig")
+        print(f"已拷贝 {filename}")
 
 
 def copy_stock_fundamental():
