@@ -20,7 +20,7 @@ def calc_atr_of(result_file: str, target_list: list[tuple[str, str]]):
         kline = KLine(code)
         _, atr_ratio = kline.atr_ratio()
         _, atr_ratio2 = kline.atr_ratio(window=50)
-        _, max_drawdown, current_drawdown = kline.drawdown(window=100)
+        _, max_drawdown, current_drawdown = kline.drawdown(window=kline.count)
         bias_ratio = kline.bias(window=50)
         etf_list.append(
             ETFATR(
