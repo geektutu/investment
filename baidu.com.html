@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="referrer" content="unsafe-url">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>跳转中...</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font: 14px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+      color: #666;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <span id="tip">跳转中...</span>
+  <script>
+    (function () {
+      var params = new URLSearchParams(location.search)
+      var code = params.get('code')
+      var market = params.get('market')
+      if (!code) {
+        document.getElementById('tip').textContent = '缺少股票代码'
+        return
+      }
+      if (!market) {
+        market = /^(5|6|9|1[13])/.test(code) ? '1' : '0'
+      }
+      location.replace(
+        'https://wap.eastmoney.com/quote/stock/' + market + '.' + code + '.html'
+      )
+    })()
+  </script>
+</body>
+</html>
