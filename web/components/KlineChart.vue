@@ -38,6 +38,51 @@ const marketPrefix = computed(() => (marketId.value === '1' ? 'SH' : 'SZ'))
 
 const baseURL = useRuntimeConfig().app.baseURL
 
+let fundamentalCache = null
+
+function parseFundamentals(text) {
+  const map = {}
+  if (!text) return map
+  const lines = text.replace(/^\uFEFF/, '').trim().split('\n')
+  const headers = lines[0].split(',').map(h => h.trim())
+  const codeIdx = headers.indexOf('代码')
+  const peIdx = headers.indexOf('PE(TTM)')
+  const roeIdx = headers.indexOf('ROE(TTM)')
+  const growthIdx = headers.indexOf('净利同比')
+  if (codeIdx === -1) return map
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',')
+    map[cols[codeIdx]?.trim()] = {
+      pe: peIdx === -1 ? '' : cols[peIdx]?.trim(),
+      roe: roeIdx === -1 ? '' : cols[roeIdx]?.trim(),
+      growth: growthIdx === -1 ? '' : cols[growthIdx]?.trim(),
+    }
+  }
+  return map
+}
+
+function loadFundamentals(url) {
+  if (!fundamentalCache) {
+    fundamentalCache = fetch(`${url}data/stock_fundamental.csv`)
+      .then(res => (res.ok ? res.text() : ''))
+      .then(parseFundamentals)
+      .catch(() => ({}))
+  }
+  return fundamentalCache
+}
+
+const fundamental = ref(null)
+
+function fmtNum(value, digits = 2) {
+  const num = parseFloat(value)
+  return isNaN(num) ? '-' : num.toFixed(digits)
+}
+
+function fmtPct(value, digits = 1) {
+  const num = parseFloat(value)
+  return isNaN(num) ? '-' : `${num.toFixed(digits)}%`
+}
+
 const eastmoneyUrl = computed(
   () => `${baseURL}baidu.com.html?market=${marketId.value}&code=${props.code}`,
 )
@@ -247,6 +292,9 @@ watch(activeTab, (tab) => {
 
 onMounted(() => {
   loadData()
+  loadFundamentals(baseURL).then(map => {
+    fundamental.value = map[props.code] || null
+  })
   document.addEventListener('keydown', handleKeydown)
   window.addEventListener('resize', handleResize)
 })
@@ -262,7 +310,14 @@ onUnmounted(() => {
   <div class="kline-overlay" @click.self="emit('close')">
     <div class="kline-modal">
       <div class="kline-header">
-        <h2>{{ name }} ({{ code }})</h2>
+        <div class="kline-title">
+          <h2>{{ name }} ({{ code }})</h2>
+          <div v-if="fundamental" class="kline-metrics">
+            <span>PE(TTM) <b>{{ fmtNum(fundamental.pe) }}</b></span>
+            <span>ROE(TTM) <b>{{ fmtPct(fundamental.roe) }}</b></span>
+            <span>净利增速 <b>{{ fmtPct(fundamental.growth) }}</b></span>
+          </div>
+        </div>
         <button class="kline-close" @click="emit('close')">✕</button>
       </div>
       <div class="kline-tabs">
@@ -338,6 +393,25 @@ onUnmounted(() => {
   font-weight: 600;
   color: var(--text-h);
   margin: 0;
+}
+
+.kline-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kline-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.kline-metrics b {
+  color: var(--text-h);
+  font-weight: 600;
 }
 
 .kline-close {

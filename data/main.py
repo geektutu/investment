@@ -119,6 +119,17 @@ def copy_close_csv():
             print(f"已拷贝 {filename}")
 
 
+def copy_stock_fundamental():
+    """将 stock_fundamental.csv 拷贝到 dist/data 供前端读取"""
+    src = os.path.join(BASE_DIR, "stock_fundamental.csv")
+    if not os.path.exists(src):
+        return
+    dist_data_dir = os.path.join(BASE_DIR, "dist", "data")
+    os.makedirs(dist_data_dir, exist_ok=True)
+    shutil.copy2(src, os.path.join(dist_data_dir, "stock_fundamental.csv"))
+    print("已拷贝 stock_fundamental.csv")
+
+
 if __name__ == "__main__":
     if "--debug" in sys.argv:
         os.environ["DEBUG"] = "1"
@@ -126,3 +137,4 @@ if __name__ == "__main__":
     run_stock_atr()
     run_correlation()
     copy_close_csv()
+    copy_stock_fundamental()

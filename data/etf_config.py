@@ -182,24 +182,85 @@ STOCK_GROUPS = {
     "央企红利类ETF": {
         "sections": ["红利ETF", "价值ETF"],
         "rule": [["红利"], ["国企", "央企"]],
+        # 净利同比 > 20% 免检，否则需 0 < PE(TTM) < 30 且 ROE(TTM) > 8
+        "filter": [
+            {"净利同比": (20, None)},
+            {"PE(TTM)": (0, 30), "ROE(TTM)": (8, None)},
+        ],
     },
     "价值类ETF": {
         "sections": ["价值ETF"],
-        "rule": [["现金流", "价值"]],
+        "rule": [["现金流", "价值", "质量"]],
+        # 净利同比 > 20% 免检，否则需 0 < PE(TTM) < 30 且 ROE(TTM) > 8
+        "filter": [
+            {"净利同比": (20, None)},
+            {"PE(TTM)": (0, 30), "ROE(TTM)": (8, None)},
+        ],
     },
     "资源类ETF": {
         "sections": ["行业ETF"],
         "rule": [["煤炭", "石油", "电力", "黄金", "有色", "稀土", "稀有金属", "化工"]],
-        "top": 20,
+        # 净利同比 > 20% 免检，否则需 0 < PE(TTM) < 30 且 ROE(TTM) > 8
+        "filter": [
+            {"净利同比": (20, None)},
+            {"PE(TTM)": (0, 30), "ROE(TTM)": (8, None)},
+        ],
     },
 }
-STOCK_EXCLUDE = ["港股", "恒生", "创业板"]
+STOCK_EXCLUDE = ["港股", "恒生", "创业板", "红利质量ETF华夏"]
 STOCK_TOP = 30
 # 手动补充的个股：类别 -> {代码: 名称}，用于当前 ETF 池覆盖不到的标的
 STOCK_EXTRA = {
     "资源类ETF": {
         "002379": "宏桥控股",
     },
+}
+# 全 A 股估值/财务快照，来自东方财富行情列表接口
+STOCK_FUNDAMENTAL_CSV = os.path.join(BASE_DIR, "stock_fundamental.csv")
+STOCK_FUNDAMENTAL_HOSTS = [
+    "https://push2delay.eastmoney.com",
+    "https://push2.eastmoney.com",
+]
+# 沪深主板、创业板、科创板、北交所
+STOCK_MARKETS = "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23,m:0+t:81+s:2048"
+# 财务指标：可读名称 -> 东财字段
+STOCK_METRICS = {
+    "代码": "f12",
+    "名称": "f14",
+    "最新价": "f2",
+    "PE(TTM)": "f115",
+    "PB": "f23",
+    "营收同比": "f41",
+    "净利同比": "f46",
+    "毛利率": "f49",
+    "总市值": "f20",
+    "上市日期": "f26",
+}
+STOCK_FIELDS = ",".join(STOCK_METRICS.values())
+# 派生指标：名称 -> (分子, 分母, 系数)，值 = 分子 / 分母 * 系数
+# ROE(TTM) = PB / PE(TTM)，即 base 口径的 TTM 净资产收益率
+STOCK_DERIVED = {
+    "ROE(TTM)": ("PB", "PE(TTM)", 100),
+}
+# CSV 列顺序，可混用普通指标与派生指标
+STOCK_COLUMNS = [
+    "代码",
+    "名称",
+    "最新价",
+    "PE(TTM)",
+    "PB",
+    "ROE(TTM)",
+    "营收同比",
+    "净利同比",
+    "毛利率",
+    "总市值",
+    "上市日期",
+]
+# 接口单页最多返回 100 条，pz 传更大也只给 100
+STOCK_PAGE_SIZE = 100
+STOCK_HEADERS = {
+    "User-Agent": "Mozilla/5.0",
+    "Referer": "https://quote.eastmoney.com/",
 }
 
 
@@ -346,6 +407,113 @@ def section_name(big, cat):
     return f"{cat}ETF" if big == "风格" else f"{big}ETF"
 
 
+@CACHE.memoize(expire=3600 * 12)
+def fetch_stock_page(page):
+    # 全 A 股行情列表，单页分页拉取，diskcache 避免重复请求
+    params = {
+        "pn": page,
+        "pz": STOCK_PAGE_SIZE,
+        "po": 1,
+        "np": 1,
+        "fltt": 2,
+        "invt": 2,
+        "fid": "f12",
+        "fs": STOCK_MARKETS,
+        "fields": STOCK_FIELDS,
+    }
+    for host in STOCK_FUNDAMENTAL_HOSTS:
+        try:
+            res = requests.get(
+                f"{host}/api/qt/clist/get",
+                params=params,
+                headers=STOCK_HEADERS,
+                timeout=15,
+            )
+            res.raise_for_status()
+            return res.json()["data"]
+        except Exception as e:
+            print(f"fetch stock page {page} failed {host}: {e}")
+    raise RuntimeError("all hosts failed")
+
+
+def save_stock_fundamentals():
+    print("收集全 A 股估值/财务快照")
+    rows = []
+    page = 1
+    total = 0
+    while True:
+        data = fetch_stock_page(page)
+        if not data or not data.get("diff"):
+            break
+        total = data["total"]
+        rows.extend(data["diff"])
+        if len(rows) >= total:
+            break
+        page += 1
+
+    header = list(STOCK_COLUMNS)
+    with open(STOCK_FUNDAMENTAL_CSV, "w", encoding="utf-8-sig", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        for item in rows:
+            values = [column_value(item, name) for name in STOCK_COLUMNS]
+            writer.writerow(["" if v in (None, "-") else v for v in values])
+    print(f"{len(rows)} 只股票估值/财务快照已保存到 {STOCK_FUNDAMENTAL_CSV}")
+    return {item["f12"]: item for item in rows}
+
+
+def to_number(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def derived_value(item, name):
+    # 按 (分子, 分母, 系数) 计算派生指标，缺数据返回 None
+    numerator, denominator, factor = STOCK_DERIVED[name]
+    a = to_number(item.get(STOCK_METRICS[numerator]))
+    b = to_number(item.get(STOCK_METRICS[denominator]))
+    if a is None or b in (None, 0):
+        return None
+    return a / b * factor
+
+
+def column_value(item, name):
+    # CSV 取值：普通指标取接口字段，派生指标现场计算
+    if name in STOCK_METRICS:
+        return item.get(STOCK_METRICS[name])
+    return derived_value(item, name)
+
+
+def metric_value(item, name):
+    # 支持普通字段与派生指标
+    if name in STOCK_METRICS:
+        return to_number(item.get(STOCK_METRICS[name]))
+    return to_number(derived_value(item, name))
+
+
+def pass_filter(item, spec):
+    # spec：子条件列表，子条件内为「且」，子条件间为「或」，全部不满足才拒绝
+    if not spec:
+        return True
+    clauses = spec if isinstance(spec, list) else [spec]
+    return any(pass_clause(item, clause) for clause in clauses)
+
+
+def pass_clause(item, clause):
+    # clause：可读指标名 -> (下限, 上限)，开区间；缺数据视为不通过
+    for name, (low, high) in clause.items():
+        value = metric_value(item, name)
+        if value is None:
+            return False
+        if low is not None and value <= low:
+            return False
+        if high is not None and value >= high:
+            return False
+    return True
+
+
 # python3 etf_config.py
 if __name__ == "__main__":
     etfs = fetch_etfs()
@@ -384,6 +552,8 @@ if __name__ == "__main__":
         sections.setdefault(section_name(big, cat), {})[code] = name
 
     # 个股分析目标：命中类别规则的 A 股 ETF 成分股，按代码去重保留首次出现的类别
+    # 先取全 A 股估值/财务快照，供类别过滤使用
+    fundamentals = save_stock_fundamentals()
     stocks = {}
     seen = set()
     for category, conf in STOCK_GROUPS.items():
@@ -399,6 +569,11 @@ if __name__ == "__main__":
                 ):
                     # A 股代码为 6 位数字，港股为 5 位，排除港股
                     if not (stock_code.isdigit() and len(stock_code) == 6):
+                        continue
+                    # 估值/财务约束
+                    if not pass_filter(
+                        fundamentals.get(stock_code, {}), conf.get("filter", {})
+                    ):
                         continue
                     if stock_code in seen:
                         continue
