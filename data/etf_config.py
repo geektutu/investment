@@ -4,7 +4,6 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
-import yaml
 from diskcache import Cache
 from tickflow import TickFlow
 
@@ -176,8 +175,6 @@ COMMODITY_CODES = {
 INDEX_MAP_CSV = os.path.join(BASE_DIR, "etf_index_map.csv")
 # 生成的目标配置，分区名 = 大类 + ETF
 CONFIG_YAML = os.path.join(BASE_DIR, "config.yaml")
-# 脚本不生成、需保留的手工配置
-KEEP_SECTIONS = ["成分股分析"]
 
 
 @CACHE.memoize(expire=3600 * 12)
@@ -360,15 +357,6 @@ if __name__ == "__main__":
         code, name, _ = pick(items)
         sections.setdefault(section_name(big, cat), {})[code] = name
 
-    # 手工维护的分区原样保留
-    kept = {}
-    if os.path.exists(CONFIG_YAML):
-        with open(CONFIG_YAML, "r", encoding="utf-8-sig") as f:
-            old = yaml.safe_load(f) or {}
-        for key in KEEP_SECTIONS:
-            if key in old:
-                kept[key] = old[key]
-
     with open(CONFIG_YAML, "w", encoding="utf-8") as result:
         for name in SECTION_ORDER:
             if name not in sections:
@@ -376,10 +364,6 @@ if __name__ == "__main__":
             print(f"{name}:", file=result)
             for code in sorted(sections[name]):
                 print(f'    "{code}": {sections[name][code]}', file=result)
-        for key, value in kept.items():
-            print(f"{key}:", file=result)
-            for code in sorted(value):
-                print(f'    "{code}": {value[code]}', file=result)
 
     stats = {}
     for (big, _, key), items in groups.items():

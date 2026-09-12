@@ -54,13 +54,15 @@ def run_stock_atr():
     config = Config()
     etf_stock_list = list(config.etf_stock_analysis())
     print(etf_stock_list)
-    target_list = set()
+    # 同一只成分股可能出现在多只 ETF 中，按代码去重，保留首次出现的来源
+    target_map = {}
     for etf, source in etf_stock_list:
         em_etf = EmETF(etf)
         stocks = em_etf.fetch_stocks(top=30)
-        target_list.update([(code, name, source) for code, name, _ in stocks])
+        for code, name, _ in stocks:
+            target_map.setdefault(code, (code, name, source))
 
-    calc_atr_of("stock_atr.csv", list(target_list))
+    calc_atr_of("stock_atr.csv", list(target_map.values()))
 
 
 def run_correlation():
