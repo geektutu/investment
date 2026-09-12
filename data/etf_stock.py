@@ -52,7 +52,5 @@ class EmETF(object):
 
         if top > 0:
             stocks = stocks[:top]
-        if os.environ.get("DEBUG"):
-            stocks = stocks[::10]
 
         return stocks

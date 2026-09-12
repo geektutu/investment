@@ -1,5 +1,4 @@
 from etf_atr import Config, ETFATR
-from etf_stock import EmETF
 from kline import KLine
 import os
 import shutil
@@ -52,17 +51,9 @@ def run_etf_atr():
 
 def run_stock_atr():
     config = Config()
-    etf_stock_list = list(config.etf_stock_analysis())
-    print(etf_stock_list)
-    # 同一只成分股可能出现在多只 ETF 中，按代码去重，保留首次出现的来源
-    target_map = {}
-    for etf, source in etf_stock_list:
-        em_etf = EmETF(etf)
-        stocks = em_etf.fetch_stocks(top=30)
-        for code, name, _ in stocks:
-            target_map.setdefault(code, (code, name, source))
-
-    calc_atr_of("stock_atr.csv", list(target_map.values()))
+    # 个股列表离线生成于 config.yaml 的 stock 分区，按来源 ETF 分组
+    target_list = list(config.stocks())
+    calc_atr_of("stock_atr.csv", target_list)
 
 
 def run_correlation():

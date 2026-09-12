@@ -7,6 +7,8 @@ import requests
 from diskcache import Cache
 from tickflow import TickFlow
 
+from etf_stock import EmETF
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CACHE = Cache(os.path.join(BASE_DIR, ".cache"))
 
@@ -175,6 +177,30 @@ COMMODITY_CODES = {
 INDEX_MAP_CSV = os.path.join(BASE_DIR, "etf_index_map.csv")
 # 生成的目标配置，分区名 = 大类 + ETF
 CONFIG_YAML = os.path.join(BASE_DIR, "config.yaml")
+# 个股分析来源按类别归并，每类指定分区及关键词规则（组内为「或」，组间为「且」），并排除指定关键词
+STOCK_GROUPS = {
+    "央企红利类ETF": {
+        "sections": ["红利ETF", "价值ETF"],
+        "rule": [["红利"], ["国企", "央企"]],
+    },
+    "价值类ETF": {
+        "sections": ["价值ETF"],
+        "rule": [["现金流", "价值"]],
+    },
+    "资源类ETF": {
+        "sections": ["行业ETF"],
+        "rule": [["煤炭", "石油", "电力", "黄金", "有色", "稀土", "稀有金属", "化工"]],
+        "top": 20,
+    },
+}
+STOCK_EXCLUDE = ["港股", "恒生", "创业板"]
+STOCK_TOP = 30
+# 手动补充的个股：类别 -> {代码: 名称}，用于当前 ETF 池覆盖不到的标的
+STOCK_EXTRA = {
+    "资源类ETF": {
+        "002379": "宏桥控股",
+    },
+}
 
 
 @CACHE.memoize(expire=3600 * 12)
@@ -357,6 +383,33 @@ if __name__ == "__main__":
         code, name, _ = pick(items)
         sections.setdefault(section_name(big, cat), {})[code] = name
 
+    # 个股分析目标：命中类别规则的 A 股 ETF 成分股，按代码去重保留首次出现的类别
+    stocks = {}
+    seen = set()
+    for category, conf in STOCK_GROUPS.items():
+        for section in conf["sections"]:
+            for code in sorted(sections.get(section, {})):
+                source = sections[section][code]
+                if not all(any(k in source for k in group) for group in conf["rule"]):
+                    continue
+                if any(keyword in source for keyword in STOCK_EXCLUDE):
+                    continue
+                for stock_code, stock_name, _ in EmETF(code).fetch_stocks(
+                    top=conf.get("top", STOCK_TOP)
+                ):
+                    # A 股代码为 6 位数字，港股为 5 位，排除港股
+                    if not (stock_code.isdigit() and len(stock_code) == 6):
+                        continue
+                    if stock_code in seen:
+                        continue
+                    seen.add(stock_code)
+                    stocks.setdefault(category, {})[stock_code] = stock_name
+
+    # 合并手动补充的个股
+    for category, items in STOCK_EXTRA.items():
+        for stock_code, stock_name in items.items():
+            stocks.setdefault(category, {})[stock_code] = stock_name
+
     with open(CONFIG_YAML, "w", encoding="utf-8") as result:
         for name in SECTION_ORDER:
             if name not in sections:
@@ -364,6 +417,12 @@ if __name__ == "__main__":
             print(f"{name}:", file=result)
             for code in sorted(sections[name]):
                 print(f'    "{code}": {sections[name][code]}', file=result)
+        if stocks:
+            print("stock:", file=result)
+            for source, items in stocks.items():
+                print(f"    {source}:", file=result)
+                for code in sorted(items):
+                    print(f'        "{code}": {items[code]}', file=result)
 
     stats = {}
     for (big, _, key), items in groups.items():

@@ -3,9 +3,6 @@ import yaml
 from kline import KLine
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# 成分股分析使用的分区，以及需排除的港股 ETF 关键词
-STOCK_SECTIONS = ["红利ETF", "价值ETF"]
-STOCK_EXCLUDE = ["港股", "恒生"]
 
 
 class Config(object):
@@ -35,13 +32,18 @@ class Config(object):
     def etf_name_of(self, code):
         return self.__etfs.get(code, "")
 
-    def etf_stock_analysis(self):
-        # 使用红利、价值分区的全部 ETF（排除港股）
-        for section in STOCK_SECTIONS:
-            for code, name in self.config.get(section, {}).items():
-                if any(keyword in name for keyword in STOCK_EXCLUDE):
-                    continue
-                yield str(code), name
+    def stocks(self):
+        # 来自 config.yaml 的 stock 分区：类别 -> {代码: 名称}
+        items = [
+            (str(code), name, category)
+            for category, group in self.config.get("stock", {}).items()
+            for code, name in group.items()
+        ]
+        if os.environ.get("DEBUG"):
+            total = len(items)
+            items = items[::10]
+            print(f"[debug] 个股: {len(items)}/{total}")
+        return items
 
 
 class ETFATR(object):
