@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { createChart, ColorType, CandlestickSeries, HistogramSeries } from 'lightweight-charts'
+import { loadFundamentals } from '~/utils/fundamentals'
 
 const props = defineProps({
   code: {
@@ -37,39 +38,6 @@ const marketId = computed(() => {
 const marketPrefix = computed(() => (marketId.value === '1' ? 'SH' : 'SZ'))
 
 const baseURL = useRuntimeConfig().app.baseURL
-
-let fundamentalCache = null
-
-function parseFundamentals(text) {
-  const map = {}
-  if (!text) return map
-  const lines = text.replace(/^\uFEFF/, '').trim().split('\n')
-  const headers = lines[0].split(',').map(h => h.trim())
-  const codeIdx = headers.indexOf('代码')
-  const peIdx = headers.indexOf('PE(TTM)')
-  const roeIdx = headers.indexOf('ROE(TTM)')
-  const growthIdx = headers.indexOf('净利同比')
-  if (codeIdx === -1) return map
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(',')
-    map[cols[codeIdx]?.trim()] = {
-      pe: peIdx === -1 ? '' : cols[peIdx]?.trim(),
-      roe: roeIdx === -1 ? '' : cols[roeIdx]?.trim(),
-      growth: growthIdx === -1 ? '' : cols[growthIdx]?.trim(),
-    }
-  }
-  return map
-}
-
-function loadFundamentals(url) {
-  if (!fundamentalCache) {
-    fundamentalCache = fetch(`${url}data/stock_fundamental.csv`)
-      .then(res => (res.ok ? res.text() : ''))
-      .then(parseFundamentals)
-      .catch(() => ({}))
-  }
-  return fundamentalCache
-}
 
 const fundamental = ref(null)
 
@@ -313,6 +281,7 @@ onUnmounted(() => {
         <div class="kline-title">
           <h2>{{ name }} ({{ code }})</h2>
           <div v-if="fundamental" class="kline-metrics">
+            <span>最新价 <b>{{ fmtNum(fundamental.price) }}</b></span>
             <span>PE(TTM) <b>{{ fmtNum(fundamental.pe) }}</b></span>
             <span>ROE(TTM) <b>{{ fmtPct(fundamental.roe) }}</b></span>
             <span>净利增速 <b>{{ fmtPct(fundamental.growth) }}</b></span>

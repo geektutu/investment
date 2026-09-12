@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import KlineChart from './KlineChart.vue'
+import { loadFundamentals } from '~/utils/fundamentals'
 
 const props = defineProps({
   csvPath: {
@@ -21,33 +22,44 @@ const sortableIndexes = [2, 3, 4, 5, 6]
 const config = useRuntimeConfig()
 const baseUrl = config.app.baseURL || '/'
 
+const showFundamental = computed(() => props.csvPath.includes('stock'))
+
 // K线图相关
 const showKline = ref(false)
 const selectedCode = ref('')
 const selectedName = ref('')
 
 onMounted(async () => {
-  const res = await fetch(`${baseUrl}data/${props.csvPath}`)
+  const [res, fundMap] = await Promise.all([
+    fetch(`${baseUrl}data/${props.csvPath}`),
+    showFundamental.value ? loadFundamentals(baseUrl) : Promise.resolve({}),
+  ])
   const text = await res.text()
-  parseCSV(text)
+  parseCSV(text, fundMap)
 })
 
-function parseCSV(text) {
+function parseCSV(text, fundMap = {}) {
   const lines = text.trim().split('\n')
   headers.value = lines[0].split(',').map(h => h.trim())
   rows.value = lines.slice(1).map(line => {
     const cols = line.split(',')
+    const code = cols[0]?.trim()
     return {
-      code: cols[0]?.trim(),
+      code,
       name: cols[1]?.trim(),
       atr14: cols[2]?.trim(),
       atr50: cols[3]?.trim(),
       bias: cols[4]?.trim(),
       maxDrawdown: cols[5]?.trim(),
       currentDrawdown: cols[6]?.trim(),
+      pe: (fundMap[code] || {}).pe ?? '',
       source: cols[7]?.trim(),
     }
   })
+  if (showFundamental.value && !headers.value.includes('PE(TTM)')) {
+    headers.value.splice(7, 0, 'PE(TTM)')
+    sortableIndexes.push(7)
+  }
 }
 
 function parsePercent(val) {
@@ -72,7 +84,7 @@ const sortedRows = computed(() => {
   if (!sortKey.value) return data
   const idx = parseInt(sortKey.value)
   const sorted = [...data].sort((a, b) => {
-    const keyMap = { 2: 'atr14', 3: 'atr50', 4: 'bias', 5: 'maxDrawdown', 6: 'currentDrawdown' }
+    const keyMap = { 2: 'atr14', 3: 'atr50', 4: 'bias', 5: 'maxDrawdown', 6: 'currentDrawdown', 7: 'pe' }
     const field = keyMap[idx]
     return parsePercent(a[field]) - parsePercent(b[field])
   })
@@ -186,6 +198,7 @@ function closeKline() {
           <td>{{ row.bias }}</td>
           <td>{{ row.maxDrawdown }}</td>
           <td>{{ row.currentDrawdown }}</td>
+          <td v-if="showFundamental">{{ row.pe }}</td>
           <td>{{ row.source }}</td>
         </tr>
       </tbody>
@@ -209,7 +222,8 @@ function closeKline() {
 
 /* 防止名称和来源列换行 */
 .atr-table-wrapper tbody td:nth-child(2),
-.atr-table-wrapper tbody td:nth-child(8) {
+.atr-table-wrapper tbody td:nth-child(8),
+.atr-table-wrapper tbody td:nth-child(9) {
   white-space: nowrap;
 }
 

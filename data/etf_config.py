@@ -1,6 +1,7 @@
 import ast
 import csv
 import os
+import sys
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
@@ -256,6 +257,8 @@ STOCK_COLUMNS = [
     "总市值",
     "上市日期",
 ]
+# 拉取到的最小股票数，低于此值视为数据异常，不覆盖已有数据
+MIN_STOCK_ROWS = 4000
 # 接口单页最多返回 100 条，pz 传更大也只给 100
 STOCK_PAGE_SIZE = 100
 STOCK_HEADERS = {
@@ -437,6 +440,7 @@ def fetch_stock_page(page):
 
 
 def save_stock_fundamentals():
+    # 独立功能：抓取全 A 股估值/财务快照并落盘，与类别过滤无关
     print("收集全 A 股估值/财务快照")
     rows = []
     page = 1
@@ -451,10 +455,16 @@ def save_stock_fundamentals():
             break
         page += 1
 
-    header = list(STOCK_COLUMNS)
+    if not rows:
+        raise RuntimeError("全 A 股估值数据为空")
+    if len(rows) < MIN_STOCK_ROWS:
+        raise RuntimeError(f"全 A 股估值数据过少：{len(rows)} < {MIN_STOCK_ROWS}")
+    if total and len(rows) < total:
+        raise RuntimeError(f"全 A 股估值数据不完整：{len(rows)}/{total}")
+
     with open(STOCK_FUNDAMENTAL_CSV, "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(header)
+        writer.writerow(list(STOCK_COLUMNS))
         for item in rows:
             values = [column_value(item, name) for name in STOCK_COLUMNS]
             writer.writerow(["" if v in (None, "-") else v for v in values])
@@ -516,93 +526,109 @@ def pass_clause(item, clause):
 
 # python3 etf_config.py
 if __name__ == "__main__":
-    etfs = fetch_etfs()
+    try:
+        etfs = fetch_etfs()
+        if not etfs:
+            raise RuntimeError("ETF 列表为空")
 
-    index_map = load_index_map()
-    if index_map is None:
-        # 旧格式（无份额列），全量重建
-        print("map 含旧格式，全量重建")
-        if os.path.exists(INDEX_MAP_CSV):
+        index_map = load_index_map()
+        rebuild_map = index_map is None
+        if rebuild_map:
+            # 旧格式（无份额列），全量重建
+            print("map 含旧格式，全量重建")
+            index_map = {}
+        missing = [code for code in sorted(etfs) if code not in index_map]
+        index_rows = []
+        if missing:
+            fetched = fetch_indexes(missing)
+            index_rows = [(code, *idx) for code, idx in fetched.items()]
+            index_map.update(fetched)
+
+        groups = {}
+        for code, inst in etfs.items():
+            index_code, index_name, shares = index_map.get(code, ("", "", 0))
+            name = inst["name"]
+            key = index_code or index_key(name)
+            for big, cat in classify(name, index_code, index_name):
+                # 同一行业关键词只保留份额最大的一个，不再按指数细分
+                if big == "行业":
+                    key = cat
+                threshold = MIN_SHARES_STYLE if big == "风格" else MIN_SHARES
+                if shares < threshold:
+                    continue
+                groups.setdefault((big, cat, key), []).append((code, name, shares))
+
+        # 分区 -> {代码: 名称}，每个指数组保留一只代表 ETF
+        sections = {}
+        for (big, cat, key), items in groups.items():
+            code, name, _ = pick(items)
+            sections.setdefault(section_name(big, cat), {})[code] = name
+
+        # 全 A 股估值/财务快照独立落盘，供类别过滤使用
+        fundamentals = save_stock_fundamentals()
+
+        # 个股分析目标：命中类别规则的 A 股 ETF 成分股，按代码去重保留首次出现的类别
+        stocks = {}
+        seen = set()
+        for category, conf in STOCK_GROUPS.items():
+            for section in conf["sections"]:
+                for code in sorted(sections.get(section, {})):
+                    source = sections[section][code]
+                    if not all(any(k in source for k in group) for group in conf["rule"]):
+                        continue
+                    if any(keyword in source for keyword in STOCK_EXCLUDE):
+                        continue
+                    members = EmETF(code).fetch_stocks(top=conf.get("top", STOCK_TOP))
+                    if not members:
+                        raise RuntimeError(f"{source} 成分股获取失败")
+                    for stock_code, stock_name, _ in members:
+                        # A 股代码为 6 位数字，港股为 5 位，排除港股
+                        if not (stock_code.isdigit() and len(stock_code) == 6):
+                            continue
+                        # 估值/财务约束
+                        if not pass_filter(
+                            fundamentals.get(stock_code, {}), conf.get("filter", {})
+                        ):
+                            continue
+                        if stock_code in seen:
+                            continue
+                        seen.add(stock_code)
+                        stocks.setdefault(category, {})[stock_code] = stock_name
+
+        # 合并手动补充的个股
+        for category, items in STOCK_EXTRA.items():
+            for stock_code, stock_name in items.items():
+                stocks.setdefault(category, {})[stock_code] = stock_name
+
+        # 全部数据就绪后再落盘 config，任何异常都不改动 config
+        if rebuild_map and os.path.exists(INDEX_MAP_CSV):
             os.remove(INDEX_MAP_CSV)
-        index_map = {}
-    missing = [code for code in sorted(etfs) if code not in index_map]
-    if missing:
-        rows = fetch_indexes(missing)
-        append_index_map([(code, *idx) for code, idx in rows.items()])
-        index_map.update(rows)
+        if index_rows:
+            append_index_map(index_rows)
 
-    groups = {}
-    for code, inst in etfs.items():
-        index_code, index_name, shares = index_map.get(code, ("", "", 0))
-        name = inst["name"]
-        key = index_code or index_key(name)
-        for big, cat in classify(name, index_code, index_name):
-            # 同一行业关键词只保留份额最大的一个，不再按指数细分
-            if big == "行业":
-                key = cat
-            threshold = MIN_SHARES_STYLE if big == "风格" else MIN_SHARES
-            if shares < threshold:
-                continue
-            groups.setdefault((big, cat, key), []).append((code, name, shares))
-
-    # 分区 -> {代码: 名称}，每个指数组保留一只代表 ETF
-    sections = {}
-    for (big, cat, key), items in groups.items():
-        code, name, _ = pick(items)
-        sections.setdefault(section_name(big, cat), {})[code] = name
-
-    # 个股分析目标：命中类别规则的 A 股 ETF 成分股，按代码去重保留首次出现的类别
-    # 先取全 A 股估值/财务快照，供类别过滤使用
-    fundamentals = save_stock_fundamentals()
-    stocks = {}
-    seen = set()
-    for category, conf in STOCK_GROUPS.items():
-        for section in conf["sections"]:
-            for code in sorted(sections.get(section, {})):
-                source = sections[section][code]
-                if not all(any(k in source for k in group) for group in conf["rule"]):
-                    continue
-                if any(keyword in source for keyword in STOCK_EXCLUDE):
-                    continue
-                for stock_code, stock_name, _ in EmETF(code).fetch_stocks(
-                    top=conf.get("top", STOCK_TOP)
-                ):
-                    # A 股代码为 6 位数字，港股为 5 位，排除港股
-                    if not (stock_code.isdigit() and len(stock_code) == 6):
-                        continue
-                    # 估值/财务约束
-                    if not pass_filter(
-                        fundamentals.get(stock_code, {}), conf.get("filter", {})
-                    ):
-                        continue
-                    if stock_code in seen:
-                        continue
-                    seen.add(stock_code)
-                    stocks.setdefault(category, {})[stock_code] = stock_name
-
-    # 合并手动补充的个股
-    for category, items in STOCK_EXTRA.items():
-        for stock_code, stock_name in items.items():
-            stocks.setdefault(category, {})[stock_code] = stock_name
-
-    with open(CONFIG_YAML, "w", encoding="utf-8") as result:
+        lines = []
         for name in SECTION_ORDER:
             if name not in sections:
                 continue
-            print(f"{name}:", file=result)
+            lines.append(f"{name}:")
             for code in sorted(sections[name]):
-                print(f'    "{code}": {sections[name][code]}', file=result)
+                lines.append(f'    "{code}": {sections[name][code]}')
         if stocks:
-            print("stock:", file=result)
+            lines.append("stock:")
             for source, items in stocks.items():
-                print(f"    {source}:", file=result)
+                lines.append(f"    {source}:")
                 for code in sorted(items):
-                    print(f'        "{code}": {items[code]}', file=result)
+                    lines.append(f'        "{code}": {items[code]}')
+        with open(CONFIG_YAML, "w", encoding="utf-8") as result:
+            result.write("\n".join(lines) + "\n")
 
-    stats = {}
-    for (big, _, key), items in groups.items():
-        n, g = stats.get(big, (0, 0))
-        stats[big] = (n + len(items), g + 1)
-    for big in BIG_ORDER:
-        if big in stats:
-            print(f"{big}: {stats[big][0]} 只 -> {stats[big][1]} 个指数组")
+        stats = {}
+        for (big, _, key), items in groups.items():
+            n, g = stats.get(big, (0, 0))
+            stats[big] = (n + len(items), g + 1)
+        for big in BIG_ORDER:
+            if big in stats:
+                print(f"{big}: {stats[big][0]} 只 -> {stats[big][1]} 个指数组")
+    except Exception as e:
+        print(f"生成失败，config.yaml 与 CSV 未修改：{e}")
+        sys.exit(1)

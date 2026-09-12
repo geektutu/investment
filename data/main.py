@@ -1,4 +1,5 @@
 from etf_atr import Config, ETFATR
+from etf_config import save_stock_fundamentals
 from kline import KLine
 import os
 import shutil
@@ -130,6 +131,14 @@ def copy_stock_fundamental():
     print("已拷贝 stock_fundamental.csv")
 
 
+def refresh_stock_fundamental():
+    """上线时重新拉取全 A 股估值/财务快照，获取不到则沿用仓库数据"""
+    try:
+        save_stock_fundamentals()
+    except Exception as e:
+        print(f"获取实时估值数据失败，使用仓库数据：{e}")
+
+
 if __name__ == "__main__":
     if "--debug" in sys.argv:
         os.environ["DEBUG"] = "1"
@@ -137,4 +146,5 @@ if __name__ == "__main__":
     run_stock_atr()
     run_correlation()
     copy_close_csv()
+    refresh_stock_fundamental()
     copy_stock_fundamental()
