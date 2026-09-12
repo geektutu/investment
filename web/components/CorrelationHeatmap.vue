@@ -63,6 +63,52 @@ function getTextColor(value) {
   return Math.abs(value) > 0.5 ? '#fff' : 'var(--text-h)'
 }
 
+// 全部强负相关组合（< -0.5），按相关性升序（矩阵对称故只遍历上三角）
+const negativePairs = computed(() => {
+  const result = []
+  const n = codes.value.length
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const value = matrix.value[i]?.[j] ?? 0
+      if (value < -0.5) {
+        result.push({ i, j, value })
+      }
+    }
+  }
+  return result.sort((a, b) => a.value - b.value)
+})
+
+// 按 ETF 聚合：每对只归到强负相关对数更多的一侧，避免同一对出现两次
+const negativeGroups = computed(() => {
+  const countByCode = new Map()
+  for (const { i, j } of negativePairs.value) {
+    const a = codes.value[i]
+    const b = codes.value[j]
+    countByCode.set(a, (countByCode.get(a) || 0) + 1)
+    countByCode.set(b, (countByCode.get(b) || 0) + 1)
+  }
+  const groups = new Map()
+  for (const { i, j, value } of negativePairs.value) {
+    const a = codes.value[i]
+    const b = codes.value[j]
+    const anchor = (countByCode.get(a) || 0) >= (countByCode.get(b) || 0) ? a : b
+    const partner = anchor === a ? b : a
+    if (!groups.has(anchor)) {
+      groups.set(anchor, { code: anchor, name: names.value[anchor], partners: [] })
+    }
+    groups.get(anchor).partners.push({
+      code: partner,
+      name: names.value[partner],
+      value,
+    })
+  }
+  const list = Array.from(groups.values())
+  for (const group of list) {
+    group.partners.sort((a, b) => a.value - b.value)
+  }
+  return list.sort((a, b) => b.partners.length - a.partners.length)
+})
+
 const cellSize = computed(() => {
   const n = codes.value.length
   if (n <= 10) return 60
@@ -73,6 +119,20 @@ const cellSize = computed(() => {
 
 <template>
   <div class="correlation-heatmap">
+    <div v-if="negativeGroups.length" class="top-negative">
+      <div class="top-negative-title">强负相关 &lt; -0.5（共 {{ negativePairs.length }} 对）</div>
+      <div v-for="group in negativeGroups" :key="group.code" class="neg-group">
+        <div class="neg-group-anchor">
+          {{ group.name }}
+          <span class="count">({{ group.partners.length }})</span>
+        </div>
+        <div class="neg-group-partners">
+          <span v-for="p in group.partners" :key="p.code" class="partner">
+            {{ p.name }}<span class="value">{{ p.value.toFixed(2) }}</span>
+          </span>
+        </div>
+      </div>
+    </div>
     <div class="heatmap-scroll">
       <table class="heatmap-table">
         <thead>
@@ -232,6 +292,60 @@ const cellSize = computed(() => {
   z-index: 10;
   position: relative;
   box-shadow: var(--shadow);
+}
+
+.top-negative {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  max-width: 720px;
+}
+
+.top-negative-title {
+  font-weight: 600;
+  color: var(--text-h);
+  margin-bottom: 8px;
+}
+
+.neg-group {
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+
+.top-negative-title + .neg-group {
+  border-top: none;
+}
+
+.neg-group-anchor {
+  font-weight: 600;
+  color: var(--text-h);
+  margin-bottom: 4px;
+}
+
+.neg-group-anchor .count {
+  font-weight: 400;
+  font-size: 12px;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+.neg-group-partners {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 12px;
+}
+
+.neg-group-partners .partner {
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.neg-group-partners .value {
+  font-family: var(--mono);
+  color: #2563eb;
+  margin-left: 2px;
 }
 
 .legend {
