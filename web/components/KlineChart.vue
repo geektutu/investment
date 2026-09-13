@@ -51,6 +51,12 @@ function fmtPct(value, digits = 1) {
   return isNaN(num) ? '-' : `${num.toFixed(digits)}%`
 }
 
+function fmtPe(value) {
+  const num = parseFloat(value)
+  if (isNaN(num) || num === 0) return '-'
+  return num < 0 ? '亏损' : num.toFixed(2)
+}
+
 const eastmoneyUrl = computed(
   () => `${baseURL}baidu.com.html?market=${marketId.value}&code=${props.code}`,
 )
@@ -282,7 +288,7 @@ onUnmounted(() => {
           <h2>{{ name }} ({{ code }})</h2>
           <div v-if="fundamental" class="kline-metrics">
             <span>最新价 <b>{{ fmtNum(fundamental.price) }}</b></span>
-            <span>PE(TTM) <b>{{ fmtNum(fundamental.pe) }}</b></span>
+            <span>PE(TTM) <b>{{ fmtPe(fundamental.pe) }}</b></span>
             <span>ROE(TTM) <b>{{ fmtPct(fundamental.roe) }}</b></span>
             <span>净利增速 <b>{{ fmtPct(fundamental.growth) }}</b></span>
           </div>

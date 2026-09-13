@@ -505,6 +505,7 @@ def load_fundamentals_from_csv(path=STOCK_FUNDAMENTAL_CSV):
 
 def etf_fund_metrics(etf_code, fundamentals):
     # 组合 PE(TTM) = 1 / Σ(wᵢ/PEᵢ)（持仓市值加权调和平均，含亏损股的负盈利）
+    # 组合整体盈利为负（Σ(wᵢ/PEᵢ) < 0）时 PE 为负值，前端展示为「亏损」
     # 组合利润增速 = [Σ wᵢ/PEᵢ] / [Σ wᵢ/(PEᵢ·(1+gᵢ))] − 1（负基数剔除）
     # wᵢ 为持仓市值占比，PEᵢ 为 PE(TTM)，gᵢ 为净利同比（百分数）
     try:
@@ -534,7 +535,7 @@ def etf_fund_metrics(etf_code, fundamentals):
         earnings_yield = weight / pe
         current += earnings_yield
         prior += earnings_yield / (1.0 + g)
-    pe = 1.0 / pe_sum if pe_sum > 0 else None
+    pe = 1.0 / pe_sum if pe_sum != 0 else None
     growth = (current / prior - 1.0) * 100.0 if current > 0 and prior > 0 else None
     return pe, growth
 

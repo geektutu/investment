@@ -87,13 +87,22 @@ function parseCSV(text, fundMap = {}, etfMap = {}) {
   }
 }
 
-function parsePercent(val) {
-  return parseFloat(val?.replace('%', '')) || 0
+function sortValue(field, val) {
+  const num = parseFloat(val)
+  if (isNaN(num)) return null
+  if (field === 'pe' && num <= 0) return null
+  return num
 }
 
 function formatGrowth(val) {
   const num = parseFloat(val)
   return isNaN(num) ? '-' : num.toFixed(1) + '%'
+}
+
+function formatPe(val) {
+  const num = parseFloat(val)
+  if (isNaN(num) || num === 0) return '-'
+  return num < 0 ? '亏损' : val
 }
 
 const allSources = computed(() => {
@@ -113,12 +122,17 @@ const sortedRows = computed(() => {
   const data = filteredRows.value
   if (!sortKey.value) return data
   const idx = parseInt(sortKey.value)
-  const sorted = [...data].sort((a, b) => {
-    const keyMap = { 2: 'atr14', 3: 'atr50', 4: 'bias', 5: 'maxDrawdown', 6: 'currentDrawdown', 7: 'pe', 8: 'growth' }
-    const field = keyMap[idx]
-    return parsePercent(a[field]) - parsePercent(b[field])
+  const keyMap = { 2: 'atr14', 3: 'atr50', 4: 'bias', 5: 'maxDrawdown', 6: 'currentDrawdown', 7: 'pe', 8: 'growth' }
+  const field = keyMap[idx]
+  const dir = sortAsc.value ? 1 : -1
+  return [...data].sort((a, b) => {
+    const va = sortValue(field, a[field])
+    const vb = sortValue(field, b[field])
+    if (va === null && vb === null) return 0
+    if (va === null) return 1
+    if (vb === null) return -1
+    return (va - vb) * dir
   })
-  return sortAsc.value ? sorted : sorted.reverse()
 })
 
 function toggleSort(idx) {
@@ -228,7 +242,7 @@ function closeKline() {
           <td>{{ row.bias }}</td>
           <td>{{ row.maxDrawdown }}</td>
           <td>{{ row.currentDrawdown }}</td>
-          <td v-if="showFundamental || showEtfGrowth">{{ row.pe }}</td>
+          <td v-if="showFundamental || showEtfGrowth">{{ formatPe(row.pe) }}</td>
           <td v-if="showFundamental || showEtfGrowth">{{ formatGrowth(row.growth) }}</td>
           <td>{{ row.source }}</td>
         </tr>
