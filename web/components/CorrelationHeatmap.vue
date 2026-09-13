@@ -295,7 +295,7 @@ const cellSize = computed(() => {
 }
 
 .top-negative {
-  margin-bottom: 16px;
+  margin: 0 auto 16px;
   padding: 12px 16px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -364,5 +364,35 @@ const cellSize = computed(() => {
   background: linear-gradient(to right, rgb(153, 153, 255), white, rgb(255, 153, 153));
   border-radius: 6px;
   border: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .heatmap-scroll {
+    max-height: 60vh;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .corner-cell,
+  .row-header {
+    width: 80px;
+    min-width: 80px;
+    padding: 4px 6px;
+  }
+
+  .row-header .name {
+    font-size: 11px;
+  }
+
+  .top-negative {
+    padding: 10px 12px;
+  }
+
+  .legend-gradient {
+    width: 140px;
+  }
+
+  .heatmap-cell:hover {
+    transform: none;
+  }
 }
 </style>

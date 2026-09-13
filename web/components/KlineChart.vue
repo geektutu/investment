@@ -501,4 +501,47 @@ onUnmounted(() => {
     background: #1a1b26;
   }
 }
+
+@media (max-width: 768px) {
+  .kline-overlay {
+    align-items: stretch;
+  }
+
+  .kline-modal {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+  }
+
+  .kline-header {
+    padding: 10px 12px;
+  }
+
+  .kline-header h2 {
+    font-size: 15px;
+  }
+
+  .kline-metrics {
+    gap: 6px 12px;
+    font-size: 11px;
+  }
+
+  .kline-tabs {
+    padding: 6px 8px 0;
+  }
+
+  .kline-tab {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .kline-chart {
+    padding: 6px;
+  }
+
+  .kline-frame {
+    width: 100%;
+  }
+}
 </style>

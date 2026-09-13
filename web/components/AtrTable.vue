@@ -45,6 +45,7 @@ function parseCSV(text, fundMap = {}) {
   rows.value = lines.slice(1).map(line => {
     const cols = line.split(',')
     const code = cols[0]?.trim()
+    const fund = fundMap[code] || {}
     return {
       code,
       name: cols[1]?.trim(),
@@ -53,18 +54,31 @@ function parseCSV(text, fundMap = {}) {
       bias: cols[4]?.trim(),
       maxDrawdown: cols[5]?.trim(),
       currentDrawdown: cols[6]?.trim(),
-      pe: (fundMap[code] || {}).pe ?? '',
+      pe: fund.pe ?? '',
+      growth: fund.growth ?? '',
       source: cols[7]?.trim(),
     }
   })
-  if (showFundamental.value && !headers.value.includes('PE(TTM)')) {
-    headers.value.splice(7, 0, 'PE(TTM)')
-    sortableIndexes.push(7)
+  if (showFundamental.value) {
+    if (!headers.value.includes('PE(TTM)')) {
+      headers.value.splice(7, 0, 'PE(TTM)')
+      sortableIndexes.push(7)
+    }
+    if (!headers.value.includes('利润增速')) {
+      const peIdx = headers.value.indexOf('PE(TTM)')
+      headers.value.splice(peIdx + 1, 0, '利润增速')
+      sortableIndexes.push(8)
+    }
   }
 }
 
 function parsePercent(val) {
   return parseFloat(val?.replace('%', '')) || 0
+}
+
+function formatGrowth(val) {
+  const num = parseFloat(val)
+  return isNaN(num) ? '-' : num.toFixed(1) + '%'
 }
 
 const allSources = computed(() => {
@@ -85,7 +99,7 @@ const sortedRows = computed(() => {
   if (!sortKey.value) return data
   const idx = parseInt(sortKey.value)
   const sorted = [...data].sort((a, b) => {
-    const keyMap = { 2: 'atr14', 3: 'atr50', 4: 'bias', 5: 'maxDrawdown', 6: 'currentDrawdown', 7: 'pe' }
+    const keyMap = { 2: 'atr14', 3: 'atr50', 4: 'bias', 5: 'maxDrawdown', 6: 'currentDrawdown', 7: 'pe', 8: 'growth' }
     const field = keyMap[idx]
     return parsePercent(a[field]) - parsePercent(b[field])
   })
@@ -200,6 +214,7 @@ function closeKline() {
           <td>{{ row.maxDrawdown }}</td>
           <td>{{ row.currentDrawdown }}</td>
           <td v-if="showFundamental">{{ row.pe }}</td>
+          <td v-if="showFundamental">{{ formatGrowth(row.growth) }}</td>
           <td>{{ row.source }}</td>
         </tr>
       </tbody>
@@ -224,7 +239,8 @@ function closeKline() {
 /* 防止名称和来源列换行 */
 .atr-table-wrapper tbody td:nth-child(2),
 .atr-table-wrapper tbody td:nth-child(8),
-.atr-table-wrapper tbody td:nth-child(9) {
+.atr-table-wrapper tbody td:nth-child(9),
+.atr-table-wrapper tbody td:nth-child(10) {
   white-space: nowrap;
 }
 
@@ -235,7 +251,7 @@ function closeKline() {
 
 .atr-table-wrapper thead th {
   position: sticky;
-  top: 72px;
+  top: 80px;
   z-index: 10;
   background: var(--bg);
   box-shadow: inset 0 -1px 0 var(--border), inset 0 1px 0 var(--border);
@@ -244,10 +260,10 @@ function closeKline() {
 .atr-table-wrapper thead th::before {
   content: '';
   position: absolute;
-  top: -16px;
+  top: -24px;
   left: -4px;
   right: -4px;
-  height: 16px;
+  height: 24px;
   background: var(--bg);
   z-index: -1;
 }
@@ -369,5 +385,54 @@ function closeKline() {
 
 .filter-option:hover {
   color: var(--accent);
+}
+
+@media (max-width: 768px) {
+  .atr-table-wrapper {
+    overflow: auto;
+    max-height: calc(100vh - 210px);
+    max-height: calc(100svh - 210px);
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    margin-inline: -12px;
+    position: static;
+  }
+
+  .atr-table-wrapper table {
+    font-size: 12px;
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .atr-table-wrapper thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: inset 0 -1px 0 var(--border);
+  }
+
+  .atr-table-wrapper thead th::before {
+    display: none;
+  }
+
+  .atr-table-wrapper thead th,
+  .atr-table-wrapper tbody td {
+    padding: 8px 10px;
+  }
+
+  .atr-table-wrapper thead th:first-child,
+  .atr-table-wrapper tbody td:first-child {
+    padding-left: 12px;
+  }
+
+  .atr-table-wrapper thead th:last-child,
+  .atr-table-wrapper tbody td:last-child {
+    padding-right: 12px;
+  }
+
+  .source-filter-panel {
+    left: auto;
+    right: 0;
+  }
 }
 </style>

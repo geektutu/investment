@@ -15,7 +15,7 @@
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 18px/145% var(--sans);
+  font: 16px/145% var(--sans);
   letter-spacing: 0.18px;
   color-scheme: light dark;
   color: var(--text);
@@ -26,7 +26,7 @@
   -moz-osx-font-smoothing: grayscale;
 
   @media (max-width: 1024px) {
-    font-size: 16px;
+    font-size: 14px;
   }
 }
 
@@ -52,6 +52,10 @@
 
 body {
   margin: 0;
+}
+
+html {
+  overflow-y: scroll;
 }
 
 h1,
@@ -354,26 +358,86 @@ code {
   gap: 4px;
 }
 
-.tabs a {
+.tab-item {
+  position: relative;
+}
+
+.tab-link {
+  display: inline-flex;
+  align-items: center;
   padding: 6px 16px;
   border: none;
   background: none;
+  font: inherit;
   font-size: 14px;
   color: var(--text);
-  cursor: pointer;
   border-radius: 6px;
   text-decoration: none;
+  cursor: pointer;
   transition: all 0.2s;
 }
 
-.tabs a:hover {
+.tab-caret {
+  font-size: 10px;
+  margin-left: 4px;
+  opacity: 0.6;
+}
+
+.tab-link:hover {
   background: var(--accent-bg);
   color: var(--accent);
 }
 
-.tabs a.active {
+.tab-item.active > .tab-link {
   background: var(--accent);
   color: var(--bg);
+}
+
+.tab-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 6px;
+  padding: 6px;
+  min-width: 140px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+  z-index: 200;
+}
+
+.tab-item:hover .tab-dropdown,
+.tab-item.open .tab-dropdown,
+.tab-item:focus-within .tab-dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.tab-dropdown-link {
+  display: block;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.tab-dropdown-link:hover {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.tab-dropdown-link.active {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .grid {
@@ -429,48 +493,6 @@ code {
   gap: 24px;
   margin-top: 24px;
   min-height: 400px;
-}
-
-.sidebar {
-  width: 200px;
-  flex-shrink: 0;
-  position: sticky;
-  top: 72px;
-  align-self: flex-start;
-  z-index: 10;
-  background: var(--bg);
-  box-shadow: 0 -16px 0 0 var(--bg);
-}
-
-.menu {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.menu li {
-  margin-bottom: 4px;
-}
-
-.menu a {
-  display: block;
-  padding: 10px 14px;
-  border-radius: 6px;
-  color: var(--text);
-  text-decoration: none;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.menu a:hover {
-  background: var(--accent-bg);
-  color: var(--accent);
-}
-
-.menu a.active {
-  background: var(--accent);
-  color: var(--bg);
-  font-weight: 600;
 }
 
 .content {
@@ -650,5 +672,126 @@ tbody tr:hover {
 @media (prefers-color-scheme: dark) {
   tbody tr:hover {
     background: rgba(192, 132, 252, 0.06);
+  }
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 26px;
+    letter-spacing: -0.6px;
+    margin: 16px 0;
+  }
+
+  h2 {
+    font-size: 18px;
+  }
+
+  #app {
+    border-inline: none;
+  }
+
+  .header {
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .logo {
+    width: 28px;
+    height: 28px;
+  }
+
+  .tabs {
+    margin-left: auto;
+  }
+
+  .tab-link {
+    padding: 6px 10px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .tab-item:last-child .tab-dropdown {
+    left: auto;
+    right: 0;
+  }
+
+  .github-link {
+    padding: 5px 8px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .container {
+    padding: 72px 12px 32px;
+  }
+
+  .container h1 {
+    font-size: 22px;
+    margin-bottom: 16px;
+  }
+
+  .grid-layout {
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .form-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .form-row .form-group {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 120px;
+  }
+
+  .form-row .form-group:first-child {
+    flex-basis: 100%;
+  }
+
+  .result-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .result-metrics {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    width: 100%;
+    gap: 12px;
+    padding-top: 0;
+  }
+
+  .result {
+    padding: 16px;
+  }
+
+  .placeholder {
+    padding: 24px 16px;
+  }
+
+  th {
+    padding: 10px 12px;
+  }
+
+  td {
+    padding: 8px 12px;
+  }
+
+  .footer {
+    margin-top: 24px;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .site-name {
+    display: none;
+  }
+
+  .tab-link {
+    padding: 6px 8px;
   }
 }

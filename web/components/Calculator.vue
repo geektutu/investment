@@ -191,4 +191,27 @@ function formatPercent(val) {
   font-weight: 600;
   color: var(--accent);
 }
+
+@media (max-width: 768px) {
+  .result-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .result-metrics {
+    padding-top: 0;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .metric-label {
+    font-size: 12px;
+  }
+
+  .price-tag {
+    font-size: 14px;
+  }
+}
 </style>

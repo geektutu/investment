@@ -189,6 +189,7 @@ const doneCount = computed(() => todos.value.filter(t => t.done).length)
 <style scoped>
 .todo-container {
   max-width: 600px;
+  margin: 0 auto;
 }
 
 .todo-input-row {
@@ -458,5 +459,21 @@ const doneCount = computed(() => todos.value.filter(t => t.done).length)
   text-align: center;
   padding: 40px 0;
   opacity: 0.5;
+}
+
+@media (max-width: 640px) {
+  .todo-item {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .todo-date {
+    display: none;
+  }
+
+  .category-actions {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
 }
 </style>

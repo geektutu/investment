@@ -2,6 +2,44 @@
 const route = useRoute()
 const baseURL = useRuntimeConfig().app.baseURL
 const { buildTime } = useAppConfig()
+const openGroup = ref('')
+
+const navGroups = [
+  {
+    label: '数据',
+    to: '/atr',
+    match: ['/', '/atr', '/stock-atr', '/correlation'],
+    children: [
+      { label: 'ETF ATR', to: '/atr' },
+      { label: '个股 ATR', to: '/stock-atr' },
+      { label: '相关性', to: '/correlation' },
+    ],
+  },
+  {
+    label: '工具',
+    to: '/tools/todo',
+    match: ['/tools'],
+    children: [
+      { label: '网格', to: '/tools/grid' },
+      { label: 'ToDo', to: '/tools/todo' },
+    ],
+  },
+]
+
+function isActive(group) {
+  return group.match.some(p => (p === '/' ? route.path === '/' : route.path.startsWith(p)))
+}
+
+function toggleGroup(label) {
+  if (typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches) return
+  openGroup.value = openGroup.value === label ? '' : label
+}
+
+function closeGroup() {
+  openGroup.value = ''
+}
+
+watch(() => route.fullPath, closeGroup)
 </script>
 
 <template>
@@ -12,10 +50,34 @@ const { buildTime } = useAppConfig()
         <span class="site-name">投资小兔兔</span>
       </div>
       <nav class="tabs">
-  <NuxtLink to="/atr" :class="{ active: route.path.startsWith('/atr') || route.path.startsWith('/stock-atr') || route.path === '/' }">表格</NuxtLink>
-  <NuxtLink to="/grid" :class="{ active: route.path.startsWith('/grid') }">网格</NuxtLink>
-  <NuxtLink to="/tools/todo" :class="{ active: route.path.startsWith('/tools') }">工具</NuxtLink>
-</nav>
+        <div
+          v-for="group in navGroups"
+          :key="group.label"
+          class="tab-item"
+          :class="{ active: isActive(group), open: openGroup === group.label }"
+        >
+          <button
+            v-if="group.children.length"
+            class="tab-link"
+            @click="toggleGroup(group.label)"
+          >
+            {{ group.label }}<span class="tab-caret">▾</span>
+          </button>
+          <NuxtLink v-else :to="group.to" class="tab-link">{{ group.label }}</NuxtLink>
+          <div v-if="group.children.length" class="tab-dropdown">
+            <NuxtLink
+              v-for="child in group.children"
+              :key="child.to"
+              :to="child.to"
+              class="tab-dropdown-link"
+              :class="{ active: route.path === child.to }"
+              @click="closeGroup"
+            >
+              {{ child.label }}
+            </NuxtLink>
+          </div>
+        </div>
+      </nav>
       <a href="https://github.com/geektutu/investment" target="_blank" class="github-link">GitHub</a>
     </header>
     <slot />
