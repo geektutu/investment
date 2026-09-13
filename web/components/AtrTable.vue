@@ -449,9 +449,32 @@ function closeKline() {
     padding: 8px 10px;
   }
 
+  /* 窄屏隐藏代码列，横向滚动时固定名称列 */
   .atr-table-wrapper thead th:first-child,
   .atr-table-wrapper tbody td:first-child {
+    display: none;
+  }
+
+  .atr-table-wrapper thead th:nth-child(2),
+  .atr-table-wrapper tbody td:nth-child(2) {
+    position: sticky;
+    left: 0;
+    background: var(--bg);
     padding-left: 12px;
+  }
+
+  .atr-table-wrapper thead th:nth-child(2) {
+    z-index: 11;
+    box-shadow: inset 0 -1px 0 var(--border), 4px 0 6px -4px rgba(0, 0, 0, 0.25);
+  }
+
+  .atr-table-wrapper tbody td:nth-child(2) {
+    z-index: 6;
+    box-shadow: 4px 0 6px -4px rgba(0, 0, 0, 0.25);
+  }
+
+  .atr-table-wrapper tbody tr:hover td:nth-child(2) {
+    background: linear-gradient(rgba(170, 59, 255, 0.06), rgba(170, 59, 255, 0.06)), var(--bg);
   }
 
   .atr-table-wrapper thead th:last-child,
