@@ -1,0 +1,1 @@
+import{_ as t,c as n,a as s,b as c,o as a,d as _}from"./rvHKPVAG.js";const r={},d={class:"container"};function l(f,e){const o=_;return a(),n("div",d,[e[0]||(e[0]=s("h1",null,"工具",-1)),c(o)])}const m=t(r,[["render",l]]);export{m as default};
