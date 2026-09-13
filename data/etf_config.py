@@ -229,6 +229,10 @@ STOCK_EXTRA = {
 }
 # 全 A 股估值/财务快照，来自东方财富行情列表接口
 STOCK_FUNDAMENTAL_CSV = os.path.join(BASE_DIR, "stock_fundamental.csv")
+# 前端构建产物目录，运行时生成、不入库
+DIST_DATA_DIR = os.path.join(BASE_DIR, "dist", "data")
+# 每只 ETF 的组合利润增速，直接写入 dist 供前端读取
+ETF_PROFIT_GROWTH_CSV = os.path.join(DIST_DATA_DIR, "etf_profit_growth.csv")
 STOCK_FUNDAMENTAL_HOSTS = [
     "https://push2delay.eastmoney.com",
     "https://push2.eastmoney.com",
@@ -481,6 +485,82 @@ def save_stock_fundamentals():
             writer.writerow(["" if v in (None, "-") else v for v in values])
     print(f"{len(rows)} 只股票估值/财务快照已保存到 {STOCK_FUNDAMENTAL_CSV}")
     return {item["f12"]: item for item in rows}
+
+
+def load_fundamentals_from_csv(path=STOCK_FUNDAMENTAL_CSV):
+    # 从已落盘的快照还原成接口原始字段结构，供离线或拉取失败时兜底
+    fundamentals = {}
+    if not os.path.exists(path):
+        return fundamentals
+    with open(path, "r", encoding="utf-8-sig", newline="") as f:
+        for row in csv.DictReader(f):
+            code = (row.get("代码") or "").strip()
+            if not code:
+                continue
+            fundamentals[code] = {
+                field: row[name] for name, field in STOCK_METRICS.items() if name in row
+            }
+    return fundamentals
+
+
+def etf_fund_metrics(etf_code, fundamentals):
+    # 组合 PE(TTM) = 1 / Σ(wᵢ/PEᵢ)（持仓市值加权调和平均，含亏损股的负盈利）
+    # 组合利润增速 = [Σ wᵢ/PEᵢ] / [Σ wᵢ/(PEᵢ·(1+gᵢ))] − 1（负基数剔除）
+    # wᵢ 为持仓市值占比，PEᵢ 为 PE(TTM)，gᵢ 为净利同比（百分数）
+    try:
+        members = EmETF(etf_code).fetch_stocks(top=-1)
+    except Exception as e:
+        print(f"基金 {etf_code} 持仓获取失败，跳过：{e}")
+        return None, None
+    if not members:
+        return None, None
+    pe_sum = 0.0
+    current = 0.0
+    prior = 0.0
+    for code, _name, weight in members:
+        item = fundamentals.get(code, {})
+        pe = metric_value(item, "PE(TTM)")
+        growth = metric_value(item, "净利同比")
+        # 缺 PE 无法计入盈利收益率
+        if pe is None or pe == 0:
+            continue
+        pe_sum += weight / pe
+        # 亏损股（PE≤0）或负基数（1+g≤0）的同比增速无意义，仅用于 PE 不计增速
+        if pe <= 0 or growth is None:
+            continue
+        g = growth / 100.0
+        if g <= -1:
+            continue
+        earnings_yield = weight / pe
+        current += earnings_yield
+        prior += earnings_yield / (1.0 + g)
+    pe = 1.0 / pe_sum if pe_sum > 0 else None
+    growth = (current / prior - 1.0) * 100.0 if current > 0 and prior > 0 else None
+    return pe, growth
+
+
+def save_etf_profit_growth(targets, fundamentals):
+    # targets: [(代码, 名称), ...]，逐只按持仓权重计算组合 PE 与利润增速
+    rows = []
+    for code, name in targets:
+        pe, growth = etf_fund_metrics(code, fundamentals)
+        rows.append((code, name, pe, growth))
+    os.makedirs(DIST_DATA_DIR, exist_ok=True)
+    with open(ETF_PROFIT_GROWTH_CSV, "w", encoding="utf-8-sig", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["代码", "名称", "PE(TTM)", "利润增速"])
+        for code, name, pe, growth in rows:
+            writer.writerow(
+                [
+                    code,
+                    name,
+                    "" if pe is None else f"{pe:.2f}",
+                    "" if growth is None else f"{growth:.2f}",
+                ]
+            )
+    valid = sum(1 for _, _, _, growth in rows if growth is not None)
+    print(f"{len(rows)} 只基金估值已保存到 {ETF_PROFIT_GROWTH_CSV}（增速有效 {valid}）")
+    return rows
 
 
 def to_number(value):

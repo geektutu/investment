@@ -38,3 +38,40 @@ export function loadFundamentals(baseURL) {
   }
   return cache
 }
+
+let etfCache = null
+let etfCacheUrl = ''
+
+function parseEtfMetrics(text) {
+  const map = {}
+  if (!text) return map
+  const lines = text.replace(/^\uFEFF/, '').trim().split('\n')
+  const headers = lines[0].split(',').map(h => h.trim())
+  const codeIdx = headers.indexOf('代码')
+  const peIdx = headers.indexOf('PE(TTM)')
+  const growthIdx = headers.indexOf('利润增速')
+  if (codeIdx === -1) return map
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',')
+    const code = cols[codeIdx]?.trim()
+    if (!code) continue
+    map[code] = {
+      pe: peIdx === -1 ? '' : cols[peIdx]?.trim() ?? '',
+      growth: growthIdx === -1 ? '' : cols[growthIdx]?.trim() ?? '',
+    }
+  }
+  return map
+}
+
+// 每只 ETF 的组合 PE 与利润增速，返回 { 代码: { pe, growth } }
+export function loadEtfFundamentals(baseURL) {
+  const url = `${baseURL}data/etf_profit_growth.csv`
+  if (!etfCache || etfCacheUrl !== url) {
+    etfCacheUrl = url
+    etfCache = fetch(url)
+      .then(res => (res.ok ? res.text() : ''))
+      .then(parseEtfMetrics)
+      .catch(() => ({}))
+  }
+  return etfCache
+}

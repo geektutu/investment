@@ -1,5 +1,9 @@
 from etf_atr import Config, ETFATR
-from etf_config import save_stock_fundamentals
+from etf_config import (
+    load_fundamentals_from_csv,
+    save_etf_profit_growth,
+    save_stock_fundamentals,
+)
 from kline import KLine
 import os
 import shutil
@@ -143,9 +147,20 @@ def copy_stock_fundamental():
 def refresh_stock_fundamental():
     """上线时重新拉取全 A 股估值/财务快照，获取不到则沿用仓库数据"""
     try:
-        save_stock_fundamentals()
+        return save_stock_fundamentals()
     except Exception as e:
         print(f"获取实时估值数据失败，使用仓库数据：{e}")
+        return load_fundamentals_from_csv()
+
+
+def run_etf_profit_growth(fundamentals):
+    """按持仓权重计算每只 ETF 的组合利润增速"""
+    if not fundamentals:
+        print("缺少估值数据，跳过基金利润增速")
+        return
+    config = Config()
+    targets = [(e, config.etf_name_of(e)) for e in config.etf()]
+    save_etf_profit_growth(targets, fundamentals)
 
 
 if __name__ == "__main__":
@@ -155,5 +170,6 @@ if __name__ == "__main__":
     run_stock_atr()
     run_correlation()
     copy_close_csv()
-    refresh_stock_fundamental()
+    fundamentals = refresh_stock_fundamental()
     copy_stock_fundamental()
+    run_etf_profit_growth(fundamentals)

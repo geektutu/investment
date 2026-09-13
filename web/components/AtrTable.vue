@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, defineAsyncComponent } from 'vue'
-import { loadFundamentals } from '~/utils/fundamentals'
+import { loadEtfFundamentals, loadFundamentals } from '~/utils/fundamentals'
 
 const KlineChart = defineAsyncComponent(() => import('./KlineChart.vue'))
 
@@ -24,6 +24,7 @@ const config = useRuntimeConfig()
 const baseUrl = config.app.baseURL || '/'
 
 const showFundamental = computed(() => props.csvPath.includes('stock'))
+const showEtfGrowth = computed(() => props.csvPath.includes('etf'))
 
 // K线图相关
 const showKline = ref(false)
@@ -31,21 +32,23 @@ const selectedCode = ref('')
 const selectedName = ref('')
 
 onMounted(async () => {
-  const [res, fundMap] = await Promise.all([
+  const [res, fundMap, etfMap] = await Promise.all([
     fetch(`${baseUrl}data/${props.csvPath}`),
     showFundamental.value ? loadFundamentals(baseUrl) : Promise.resolve({}),
+    showEtfGrowth.value ? loadEtfFundamentals(baseUrl) : Promise.resolve({}),
   ])
   const text = await res.text()
-  parseCSV(text, fundMap)
+  parseCSV(text, fundMap, etfMap)
 })
 
-function parseCSV(text, fundMap = {}) {
+function parseCSV(text, fundMap = {}, etfMap = {}) {
   const lines = text.trim().split('\n')
   headers.value = lines[0].split(',').map(h => h.trim())
   rows.value = lines.slice(1).map(line => {
     const cols = line.split(',')
     const code = cols[0]?.trim()
     const fund = fundMap[code] || {}
+    const etf = etfMap[code] || {}
     return {
       code,
       name: cols[1]?.trim(),
@@ -54,11 +57,23 @@ function parseCSV(text, fundMap = {}) {
       bias: cols[4]?.trim(),
       maxDrawdown: cols[5]?.trim(),
       currentDrawdown: cols[6]?.trim(),
-      pe: fund.pe ?? '',
-      growth: fund.growth ?? '',
+      pe: showEtfGrowth.value ? (etf.pe ?? '') : (fund.pe ?? ''),
+      growth: showEtfGrowth.value ? (etf.growth ?? '') : (fund.growth ?? ''),
       source: cols[7]?.trim(),
     }
   })
+  if (showEtfGrowth.value) {
+    const sourceIdx = headers.value.indexOf('来源')
+    const at = sourceIdx === -1 ? headers.value.length : sourceIdx
+    if (!headers.value.includes('PE(TTM)')) {
+      headers.value.splice(at, 0, 'PE(TTM)')
+      sortableIndexes.push(7)
+    }
+    if (!headers.value.includes('利润增速')) {
+      headers.value.splice(at + 1, 0, '利润增速')
+      sortableIndexes.push(8)
+    }
+  }
   if (showFundamental.value) {
     if (!headers.value.includes('PE(TTM)')) {
       headers.value.splice(7, 0, 'PE(TTM)')
@@ -213,8 +228,8 @@ function closeKline() {
           <td>{{ row.bias }}</td>
           <td>{{ row.maxDrawdown }}</td>
           <td>{{ row.currentDrawdown }}</td>
-          <td v-if="showFundamental">{{ row.pe }}</td>
-          <td v-if="showFundamental">{{ formatGrowth(row.growth) }}</td>
+          <td v-if="showFundamental || showEtfGrowth">{{ row.pe }}</td>
+          <td v-if="showFundamental || showEtfGrowth">{{ formatGrowth(row.growth) }}</td>
           <td>{{ row.source }}</td>
         </tr>
       </tbody>

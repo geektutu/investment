@@ -38,7 +38,11 @@ class EmETF(object):
             print(self.etf_code, "Not Found")
             return stocks
 
-        data = obj["result"]["data"]
+        data = (obj.get("result") or {}).get("data") or []
+        if not data:
+            print(self.etf_code, "No Constituents")
+            return stocks
+
         for item in data:
             name = item["STOCK_NAME_ABBR"]
             code = item["STOCK_SECURITY_CODE"]
