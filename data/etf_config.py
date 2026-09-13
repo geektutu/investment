@@ -192,6 +192,10 @@ STOCK_GROUPS = {
     "价值类ETF": {
         "sections": ["价值ETF"],
         "rule": [["现金流", "价值", "质量"]],
+        # 权重前 25 与「低 PE(>0) 且 ROE > 12」前 10 取并集
+        "top": 25,
+        "low_pe": 10,
+        "low_pe_roe": 12,
         # 净利同比 > 20% 免检，否则需 0 < PE(TTM) < 30 且 ROE(TTM) > 8
         "filter": [
             {"净利同比": (20, None)},
@@ -201,6 +205,9 @@ STOCK_GROUPS = {
     "资源类ETF": {
         "sections": ["行业ETF"],
         "rule": [["煤炭", "石油", "电力", "黄金", "有色", "稀土", "稀有金属", "化工"]],
+        # 权重前 25 与低 PE(>0) 前 10 取并集
+        "top": 25,
+        "low_pe": 10,
         # 净利同比 > 20% 免检，否则需 0 < PE(TTM) < 30 且 ROE(TTM) > 8
         "filter": [
             {"净利同比": (20, None)},
@@ -210,6 +217,10 @@ STOCK_GROUPS = {
 }
 STOCK_EXCLUDE = ["港股", "恒生", "创业板", "红利质量ETF华夏"]
 STOCK_TOP = 30
+# 做 T 便利性：过滤股价高于此值的个股
+STOCK_MAX_PRICE = 100
+# 低 PE 分支的估值上限
+LOW_PE_MAX = 30
 # 手动补充的个股：类别 -> {代码: 名称}，用于当前 ETF 池覆盖不到的标的
 STOCK_EXTRA = {
     "资源类ETF": {
@@ -524,6 +535,45 @@ def pass_clause(item, clause):
     return True
 
 
+def select_members(members, conf, fundamentals):
+    # 默认按权重取 top；配置 low_pe 时，再与「低 PE(>0) 且 ROE(>low_pe_roe)」前 low_pe 取并集
+    top = conf.get("top", STOCK_TOP)
+    low_pe = conf.get("low_pe", 0)
+    low_pe_roe = conf.get("low_pe_roe", 0)
+    ordered = members[:top] if top > 0 else list(members)
+    if low_pe > 0:
+
+        def pe_of(item):
+            value = metric_value(fundamentals.get(item[0], {}), "PE(TTM)")
+            return value if value is not None and 0 < value < LOW_PE_MAX else None
+
+        def roe_ok(item):
+            value = metric_value(fundamentals.get(item[0], {}), "ROE(TTM)")
+            return value is not None and value > low_pe_roe
+
+        ranked = sorted(
+            (m for m in members if pe_of(m) is not None and roe_ok(m)), key=pe_of
+        )[:low_pe]
+        ordered = ordered + ranked
+    unique = {}
+    for item in ordered:
+        unique.setdefault(item[0], item)
+    return list(unique.values())
+
+
+def filter_high_price(stocks, fundamentals):
+    # 整体过滤股价 > STOCK_MAX_PRICE 的个股，缺价格不处理，返回被过滤的记录
+    removed = []
+    for category in list(stocks):
+        for code in list(stocks[category]):
+            price = metric_value(fundamentals.get(code, {}), "最新价")
+            if price is not None and price > STOCK_MAX_PRICE:
+                removed.append((code, stocks[category].pop(code), price, category))
+        if not stocks[category]:
+            del stocks[category]
+    return removed
+
+
 # python3 etf_config.py
 if __name__ == "__main__":
     try:
@@ -578,10 +628,13 @@ if __name__ == "__main__":
                         continue
                     if any(keyword in source for keyword in STOCK_EXCLUDE):
                         continue
-                    members = EmETF(code).fetch_stocks(top=conf.get("top", STOCK_TOP))
+                    fetch_top = -1 if conf.get("low_pe") else conf.get("top", STOCK_TOP)
+                    members = EmETF(code).fetch_stocks(top=fetch_top)
                     if not members:
                         raise RuntimeError(f"{source} 成分股获取失败")
-                    for stock_code, stock_name, _ in members:
+                    for stock_code, stock_name, _ in select_members(
+                        members, conf, fundamentals
+                    ):
                         # A 股代码为 6 位数字，港股为 5 位，排除港股
                         if not (stock_code.isdigit() and len(stock_code) == 6):
                             continue
@@ -599,6 +652,13 @@ if __name__ == "__main__":
         for category, items in STOCK_EXTRA.items():
             for stock_code, stock_name in items.items():
                 stocks.setdefault(category, {})[stock_code] = stock_name
+
+        # 整体过滤股价过高的个股，规避做 T 不便的标的
+        removed = filter_high_price(stocks, fundamentals)
+        if removed:
+            print(f"过滤股价 > {STOCK_MAX_PRICE} 的个股 {len(removed)} 只：")
+            for code, name, price, category in sorted(removed, key=lambda x: -x[2]):
+                print(f"  {code} {name} {price:.2f} [{category}]")
 
         # 全部数据就绪后再落盘 config，任何异常都不改动 config
         if rebuild_map and os.path.exists(INDEX_MAP_CSV):
