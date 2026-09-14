@@ -19,5 +19,15 @@ export default defineNuxtConfig({
   appConfig: {
     buildTime: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }),
   },
+  vite: {
+    build: {
+      cssCodeSplit: false,
+      rollupOptions: {
+        output: {
+          manualChunks: () => 'app',
+        },
+      },
+    },
+  },
   compatibilityDate: '2024-11-01',
 })

@@ -6,7 +6,6 @@ from etf_config import (
 )
 from kline import KLine
 import os
-import shutil
 import sys
 import pandas as pd
 
@@ -134,14 +133,28 @@ def copy_close_csv():
 
 
 def copy_stock_fundamental():
-    """将 stock_fundamental.csv 拷贝到 dist/data 供前端读取"""
+    """将 stock_fundamental.csv 按 config.yaml 个股标的精简后写入 dist/data"""
     src = os.path.join(BASE_DIR, "stock_fundamental.csv")
     if not os.path.exists(src):
         return
     dist_data_dir = os.path.join(BASE_DIR, "dist", "data")
     os.makedirs(dist_data_dir, exist_ok=True)
-    shutil.copy2(src, os.path.join(dist_data_dir, "stock_fundamental.csv"))
-    print("已拷贝 stock_fundamental.csv")
+    codes = {code for code, _, _ in Config().stocks()}
+    with open(src, "r", encoding="utf-8-sig") as f:
+        lines = f.read().splitlines()
+    code_idx = lines[0].split(",").index("代码")
+    kept = [lines[0]] + [
+        line
+        for line in lines[1:]
+        if line and line.split(",")[code_idx].strip() in codes
+    ]
+    with open(
+        os.path.join(dist_data_dir, "stock_fundamental.csv"),
+        "w",
+        encoding="utf-8-sig",
+    ) as f:
+        f.write("\n".join(kept) + "\n")
+    print(f"已拷贝 stock_fundamental.csv（{len(kept) - 1} 只）")
 
 
 def refresh_stock_fundamental():
