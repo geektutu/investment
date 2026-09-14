@@ -1,1 +1,0 @@
-import{u as o,q as s,c as a,b as c,o as n,d as r}from"./CDlXP6yp.js";const _={class:"container"},l={__name:"index",setup(u){const e=o();return s().path==="/"&&e.replace("/atr"),(i,m)=>{const t=r;return n(),a("div",_,[c(t)])}}};export{l as default};
